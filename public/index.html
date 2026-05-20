@@ -231,78 +231,27 @@ async function finishProcessing(pdfTexts) {
   if (data.weekLabel) document.getElementById('report-week-label').textContent = data.weekLabel;
 }
 
-async function extractPdfText(base64) {
-  var res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-          { type: 'text', text: 'Extract all text from this MLS showing report PDF. Return ONLY the raw text content, nothing else.' }
-        ]
-      }]
-    })
-  });
-  var d = await res.json();
-  if (d.error) throw new Error('API error: ' + d.error.message);
-  return d.content.map(function(b) { return b.text || ''; }).join('\n');
-}
-
-async function analyzeShowings(pdfTexts) {
-  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-  const contentParts = [
-    { type: 'text', text: 'You are analyzing MLS weekly showing reports for a home builder (Foundation Homes). Today is ' + today + '.\n\nHere is the extracted showing report data:' }
-  ];
-  pdfTexts.forEach(function(p) {
-    contentParts.push({ type: 'text', text: '\n=== FILE: ' + p.name + ' ===\n' + p.text });
-  });
-
-  const instructions = [
-    'Return ONLY a valid JSON object — no markdown, no explanation. Structure:',
-    '{ "weekLabel": "Week of [date range]", "reportTitle": "Weekly Showings Report",',
-    '"reportSub": "Foundation Homes · [date range] · Emily Schroeder, MacDoc",',
-    '"reportDate": "[today date]",',
-    '"metrics": { "totalShowings": 0, "feedbackRate": "X of Y (Z%)", "positiveSentiment": "X%", "avgDom": 0, "listingsOver30Days": 0, "decisionsNeeded": 0 },',
-    '"properties": [{ "address": "", "city": "", "price": "$XXX,XXX", "listPrice": 0, "listedDate": "Month D YYYY",',
-    '"daysOnMarket": 0, "showingsThisWeek": 0, "totalShowings": 0, "feedbackReceived": "X/Y",',
-    '"sentiment": "Liked", "sentimentColor": "green", "priceFeedback": "Just right",',
-    '"status": "caution", "badgeText": "", "badgeColor": "gray",',
-    '"keyNotes": "", "recommendedAction": "", "actionColor": "gray", "requiresDecision": false }],',
-    '"decisions": [{ "property": "", "action": "", "tag": "Approve", "tagColor": "approve" }] }',
-    'Rules:',
-    '- Sort requiresDecision=true first by daysOnMarket desc, then false by daysOnMarket desc',
-    '- urgent: price concerns, 30+ days no offers, recurring negative feedback',
-    '- blocked: site or construction issue',
-    '- positive: active lead or loved/liked sentiment',
-    '- caution: monitoring, mixed, new listing',
-    '- daysOnMarket: days from listedDate to today (' + today + ')',
-    '- Be direct in recommendedAction, no hedging',
-    '- sentimentColor: green=liked/loved, red=negative, amber=mixed, gray=none',
-    '- badgeColor: red=urgent, amber=watch, green=positive, gray=neutral'
-  ].join('\n');
-
-  contentParts.push({ type: 'text', text: '\n\n' + instructions });
-
+async function extractPdfText(base64, filename) {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: contentParts }]
-    })
+    body: JSON.stringify({ action: 'extract', base64: base64, filename: filename })
   });
-
   const d = await res.json();
   if (d.error) throw new Error('API error: ' + d.error.message);
-  const raw = d.content.map(function(b) { return b.text || ''; }).join('');
-  const clean = raw.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  return d.text;
+}
+
+async function analyzeShowings(pdfTexts) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'analyze', texts: pdfTexts })
+  });
+  const d = await res.json();
+  if (d.error) throw new Error('API error: ' + d.error.message);
+  return d;
+}
 }
 function renderDashboard(d) {
   document.getElementById('dash-title').textContent = d.reportTitle || 'Weekly Showings Report';
