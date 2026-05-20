@@ -44,7 +44,6 @@
     line-height: 1.5;
   }
 
-  /* ── HEADER ── */
   .site-header {
     background: var(--text);
     color: #f5f4f0;
@@ -67,12 +66,8 @@
   .site-header .logo span { color: #9e9890; }
   .header-meta { font-family: var(--mono); font-size: 11px; color: #6b6560; }
 
-  /* ── LAYOUT ── */
   .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
 
-  
-
-  /* ── UPLOAD ZONE ── */
   #upload-section { margin-bottom: 2rem; }
 
   .upload-zone {
@@ -88,15 +83,10 @@
     border-color: var(--text);
     background: var(--surface2);
   }
-  .upload-icon {
-    width: 40px; height: 40px;
-    margin: 0 auto 1rem;
-    opacity: 0.3;
-  }
+  .upload-icon { width: 40px; height: 40px; margin: 0 auto 1rem; opacity: 0.3; }
   .upload-title { font-weight: 500; font-size: 15px; margin-bottom: 4px; }
   .upload-sub { font-size: 13px; color: var(--text-muted); }
   .upload-sub strong { color: var(--text); font-weight: 500; }
-
   #file-input { display: none; }
 
   .upload-btn {
@@ -116,7 +106,6 @@
   }
   .upload-btn:hover { opacity: 0.8; }
 
-  /* ── STATUS BAR ── */
   #status-bar {
     display: none;
     background: var(--surface);
@@ -142,7 +131,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   #status-bar.hidden { display: none !important; }
 
-  /* ── METRICS ROW ── */
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -163,20 +151,10 @@
     letter-spacing: 0.06em;
     margin-bottom: 5px;
   }
-  .metric-val {
-    font-size: 26px;
-    font-weight: 300;
-    color: var(--text);
-    line-height: 1;
-  }
+  .metric-val { font-size: 26px; font-weight: 300; color: var(--text); line-height: 1; }
   .metric-val.warn { color: var(--red); }
-  .metric-sub {
-    font-size: 11px;
-    color: var(--text-faint);
-    margin-top: 4px;
-  }
+  .metric-sub { font-size: 11px; color: var(--text-faint); margin-top: 4px; }
 
-  /* ── SECTION LABEL ── */
   .sec-label {
     font-family: var(--mono);
     font-size: 10px;
@@ -189,7 +167,6 @@
     border-bottom: 0.5px solid var(--border);
   }
 
-  /* ── PROPERTY CARDS ── */
   .props-section { margin-bottom: 2rem; }
 
   .prop-card {
@@ -238,13 +215,7 @@
   .stat-val.green { color: var(--green); }
 
   .dom-bar-wrap { margin-top: 6px; }
-  .dom-bar-track {
-    background: var(--border);
-    border-radius: 2px;
-    height: 4px;
-    width: 100%;
-    overflow: hidden;
-  }
+  .dom-bar-track { background: var(--border); border-radius: 2px; height: 4px; width: 100%; overflow: hidden; }
   .dom-bar-fill { height: 100%; border-radius: 2px; }
   .dom-bar-labels {
     display: flex;
@@ -255,11 +226,7 @@
     margin-top: 3px;
   }
 
-  .action-box {
-    background: var(--surface2);
-    border-radius: 4px;
-    padding: 0.65rem 0.8rem;
-  }
+  .action-box { background: var(--surface2); border-radius: 4px; padding: 0.65rem 0.8rem; }
   .action-label {
     font-family: var(--mono);
     font-size: 10px;
@@ -275,7 +242,6 @@
   .action-text.green { color: var(--green); }
   .action-text.gray { color: var(--gray); }
 
-  /* ── DECISIONS TABLE ── */
   .decisions-box {
     background: var(--surface);
     border: 0.5px solid var(--border);
@@ -292,13 +258,7 @@
     font-size: 13px;
   }
   .decision-row:last-child { border-bottom: none; }
-  .decision-num {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-faint);
-    min-width: 16px;
-    padding-top: 2px;
-  }
+  .decision-num { font-family: var(--mono); font-size: 10px; color: var(--text-faint); min-width: 16px; padding-top: 2px; }
   .decision-text { flex: 1; color: var(--text); line-height: 1.5; }
   .decision-tag {
     font-family: var(--mono);
@@ -312,7 +272,6 @@
   .tag-op { background: var(--amber-bg); color: var(--amber); border: 0.5px solid var(--amber-border); }
   .tag-info { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--green-border); }
 
-  /* ── REPORT HEADER ── */
   .report-header {
     display: flex;
     justify-content: space-between;
@@ -327,19 +286,10 @@
   .report-sub { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
   .report-date { font-family: var(--mono); font-size: 11px; color: var(--text-faint); }
 
-  /* ── EMPTY STATE ── */
-  #empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: var(--text-faint);
-    font-size: 13px;
-  }
+  #empty-state { text-align: center; padding: 3rem 2rem; color: var(--text-faint); font-size: 13px; }
   #empty-state p { margin-top: 0.5rem; }
-
-  /* ── DASHBOARD ── */
   #dashboard { display: none; }
 
-  /* ── ERROR ── */
   .error-box {
     background: var(--red-bg);
     border: 0.5px solid var(--red-border);
@@ -350,7 +300,6 @@
     margin-bottom: 1rem;
   }
 
-  /* ── DIVIDER ── */
   hr { border: none; border-top: 0.5px solid var(--border); margin: 1.5rem 0; }
 
   @media (max-width: 640px) {
@@ -368,7 +317,6 @@
 
 <div class="container">
 
-  <!-- Upload -->
   <div id="upload-section">
     <div class="upload-zone" id="drop-zone">
       <svg class="upload-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -382,22 +330,18 @@
     </div>
   </div>
 
-  <!-- Status -->
   <div id="status-bar" class="hidden">
     <div class="spinner"></div>
     <span id="status-text">Reading PDFs...</span>
   </div>
 
-  <!-- Error -->
   <div id="error-box" class="error-box" style="display:none;"></div>
 
-  <!-- Empty state -->
   <div id="empty-state">
     <p>Upload your weekly ZIP file above to generate the report.</p>
     <p>The dashboard will parse all showing PDFs and render automatically.</p>
   </div>
 
-  <!-- Dashboard -->
   <div id="dashboard">
     <div class="report-header">
       <div>
@@ -406,19 +350,15 @@
       </div>
       <div class="report-date" id="dash-date"></div>
     </div>
-
     <div class="metrics-grid" id="metrics-grid"></div>
-
     <div class="props-section">
       <div class="sec-label">Requires owner decision</div>
       <div id="urgent-props"></div>
     </div>
-
     <div class="props-section">
       <div class="sec-label">Active — monitoring</div>
       <div id="monitor-props"></div>
     </div>
-
     <hr>
     <div class="sec-label" style="margin-bottom:0.75rem;">Owner — decisions needed this week</div>
     <div class="decisions-box" id="decisions-box"></div>
@@ -426,15 +366,11 @@
 
 </div>
 
-<!-- JSZip -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
 const API_URL = "/api/claude";
 
-function getApiKey() { return null; }
-
-// ── DRAG & DROP ──
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 
@@ -452,52 +388,35 @@ fileInput.addEventListener('change', e => {
 function handleFiles(files) {
   const zips = files.filter(f => f.name.toLowerCase().endsWith('.zip'));
   const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
-
-  if (zips.length > 0) {
-    processZip(zips[0]);
-  } else if (pdfs.length > 0) {
-    processPdfs(pdfs);
-  } else {
-    showError('Please upload a .zip file or one or more .pdf files.');
-  }
+  if (zips.length > 0) processZip(zips[0]);
+  else if (pdfs.length > 0) processPdfs(pdfs);
+  else showError('Please upload a .zip file or one or more .pdf files.');
 }
 
-// ── STATUS HELPERS ──
 function setStatus(msg) {
   const bar = document.getElementById('status-bar');
   bar.style.display = 'flex';
   bar.classList.remove('hidden');
   document.getElementById('status-text').textContent = msg;
 }
-function hideStatus() {
-  document.getElementById('status-bar').style.display = 'none';
-}
+function hideStatus() { document.getElementById('status-bar').style.display = 'none'; }
 function showError(msg) {
   hideStatus();
   const box = document.getElementById('error-box');
   box.textContent = msg;
   box.style.display = 'block';
 }
-function hideError() {
-  document.getElementById('error-box').style.display = 'none';
-}
+function hideError() { document.getElementById('error-box').style.display = 'none'; }
 
-// ── PROCESS ZIP ──
 async function processZip(file) {
   hideError();
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('empty-state').style.display = 'none';
   setStatus('Reading ZIP file...');
-
   try {
     const zip = await JSZip.loadAsync(file);
     const pdfFiles = Object.values(zip.files).filter(f => f.name.toLowerCase().endsWith('.pdf') && !f.dir);
-
-    if (pdfFiles.length === 0) {
-      showError('No PDF files found in the ZIP. Please check the file and try again.');
-      return;
-    }
-
+    if (pdfFiles.length === 0) { showError('No PDF files found in the ZIP.'); return; }
     setStatus(`Found ${pdfFiles.length} showing reports — extracting text...`);
     const pdfTexts = [];
     for (let i = 0; i < pdfFiles.length; i++) {
@@ -508,18 +427,13 @@ async function processZip(file) {
       pdfTexts.push({ name: pdfFile.name, text });
     }
     await finishProcessing(pdfTexts);
-  } catch (err) {
-    console.error(err);
-    showError(err.message);
-  }
+  } catch (err) { console.error(err); showError(err.message); }
 }
 
-// ── PROCESS INDIVIDUAL PDFs ──
 async function processPdfs(files) {
   hideError();
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('empty-state').style.display = 'none';
-
   try {
     setStatus(`Found ${files.length} PDF${files.length > 1 ? 's' : ''} — extracting text...`);
     const pdfTexts = [];
@@ -531,10 +445,7 @@ async function processPdfs(files) {
       pdfTexts.push({ name: file.name, text });
     }
     await finishProcessing(pdfTexts);
-  } catch (err) {
-    console.error(err);
-    showError(err.message);
-  }
+  } catch (err) { console.error(err); showError(err.message); }
 }
 
 function fileToBase64(file) {
@@ -552,23 +463,17 @@ async function finishProcessing(pdfTexts) {
   setStatus('Rendering dashboard...');
   renderDashboard(reportData);
   hideStatus();
-  if (reportData.weekLabel) {
-    document.getElementById('report-week-label').textContent = reportData.weekLabel;
-  }
+  if (reportData.weekLabel) document.getElementById('report-week-label').textContent = reportData.weekLabel;
 }
 
-// ── EXTRACT PDF TEXT VIA CLAUDE ──
 async function extractPdfText(base64, filename) {
-const response = await fetch(API_URL, {
+  const response = await fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'pdfs-2024-09-25'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
+      extra_headers: { 'anthropic-beta': 'pdfs-2024-09-25' },
       messages: [{
         role: 'user',
         content: [
@@ -583,11 +488,9 @@ const response = await fetch(API_URL, {
   return data.content.map(b => b.text || '').join('\n');
 }
 
-// ── ANALYZE ALL SHOWINGS VIA CLAUDE ──
 async function analyzeShowings(pdfTexts) {
-const combined = pdfTexts.map(p => `=== FILE: ${p.name} ===\n${p.text}`).join('\n\n');
+  const combined = pdfTexts.map(p => `=== FILE: ${p.name} ===\n${p.text}`).join('\n\n');
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
   const prompt = `You are analyzing MLS weekly showing reports for a home builder (Foundation Homes). Today's date is ${today}.
 
 Here are the extracted texts from all showing report PDFs this week:
@@ -602,71 +505,65 @@ Analyze these reports and return ONLY a valid JSON object with this exact struct
   "reportSub": "Foundation Homes · [date range] · Emily Schroeder, MacDoc",
   "reportDate": "[today's date]",
   "metrics": {
-    "totalShowings": <number, showings this week>,
-    "feedbackRate": "<X of Y (Z%)>",
-    "positiveSentiment": "<X%>",
-    "avgDom": <number, average days on market across all listings>,
-    "listingsOver30Days": <number>,
-    "decisionsNeeded": <number>
+    "totalShowings": 0,
+    "feedbackRate": "X of Y (Z%)",
+    "positiveSentiment": "X%",
+    "avgDom": 0,
+    "listingsOver30Days": 0,
+    "decisionsNeeded": 0
   },
   "properties": [
     {
-      "address": "<street address>",
-      "city": "<city, state>",
-      "price": "<$XXX,XXX>",
-      "listPrice": <number>,
-      "listedDate": "<Month D, YYYY>",
-      "daysOnMarket": <number>,
-      "showingsThisWeek": <number>,
-      "totalShowings": <number>,
-      "feedbackReceived": "<X/Y>",
-      "sentiment": "<Positive|Negative|Mixed|Loved|Liked|No feedback|No-show>",
-      "sentimentColor": "<green|red|amber|gray>",
-      "priceFeedback": "<Just right|Too high|Too low|Mixed|None>",
-      "status": "<urgent|caution|positive|blocked>",
-      "badgeText": "<short badge label>",
-      "badgeColor": "<red|amber|green|gray>",
-      "keyNotes": "<1-2 sentence summary of key agent feedback>",
-      "recommendedAction": "<Direct, specific recommendation — own it, no hedging>",
-      "actionColor": "<red|amber|green|gray>",
-      "requiresDecision": <true|false>
+      "address": "street address",
+      "city": "city, state",
+      "price": "$XXX,XXX",
+      "listPrice": 0,
+      "listedDate": "Month D, YYYY",
+      "daysOnMarket": 0,
+      "showingsThisWeek": 0,
+      "totalShowings": 0,
+      "feedbackReceived": "X/Y",
+      "sentiment": "Positive",
+      "sentimentColor": "green",
+      "priceFeedback": "Just right",
+      "status": "caution",
+      "badgeText": "badge label",
+      "badgeColor": "gray",
+      "keyNotes": "1-2 sentence summary",
+      "recommendedAction": "Direct recommendation",
+      "actionColor": "gray",
+      "requiresDecision": false
     }
   ],
   "decisions": [
     {
-      "property": "<short address>",
-      "action": "<direct owner ask — specific question or approval needed>",
-      "tag": "<Approve|Operations|Info>",
-      "tagColor": "<approve|op|info>"
+      "property": "short address",
+      "action": "direct owner ask",
+      "tag": "Approve",
+      "tagColor": "approve"
     }
   ]
 }
 
-Rules for analysis:
-- Sort properties: requiresDecision=true first (by daysOnMarket desc), then monitoring (by daysOnMarket desc)
-- status=urgent: price concerns flagged by agents, OR 30+ days with no offers, OR recurring negative feedback
-- status=blocked: site/construction issue preventing showings or sales
-- status=positive: active lead, strong buyer interest, loved/liked sentiment
-- status=caution: monitoring, mixed signals, new listing
-- daysOnMarket: calculate from listed date to today (${today})
-- DOM bar color: green if <21 days, amber if 21-35, red if >35
-- recommendedAction: be direct — "Recommend price reduction" not "may need to consider"
-- decisions: only include properties where requiresDecision=true, ordered by urgency
-- feedbackRate: count showings that received feedback vs total showings this week`;
+Rules:
+- Sort: requiresDecision=true first by daysOnMarket desc, then monitoring by daysOnMarket desc
+- status=urgent: price concerns, 30+ days no offers, recurring negative feedback
+- status=blocked: site or construction issue
+- status=positive: active lead, strong interest, loved/liked sentiment
+- status=caution: monitoring, mixed, new listing
+- daysOnMarket: calculate from listed date to today
+- Be direct in recommendedAction, no hedging
+- decisions: only requiresDecision=true properties, ordered by urgency`;
 
   const response = await fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }]
     })
   });
-
   const data = await response.json();
   if (data.error) throw new Error('API error: ' + data.error.message);
   const raw = data.content.map(b => b.text || '').join('');
@@ -674,13 +571,10 @@ Rules for analysis:
   return JSON.parse(clean);
 }
 
-// ── RENDER DASHBOARD ──
 function renderDashboard(d) {
   document.getElementById('dash-title').textContent = d.reportTitle || 'Weekly Showings Report';
   document.getElementById('dash-sub').textContent = d.reportSub || '';
   document.getElementById('dash-date').textContent = d.reportDate || '';
-
-  // Metrics
   const m = d.metrics;
   document.getElementById('metrics-grid').innerHTML = `
     <div class="metric-card"><div class="metric-label">Showings this week</div><div class="metric-val">${m.totalShowings}</div></div>
@@ -690,20 +584,14 @@ function renderDashboard(d) {
     <div class="metric-card"><div class="metric-label">Listings 30+ days</div><div class="metric-val ${m.listingsOver30Days > 0 ? 'warn' : ''}">${m.listingsOver30Days}</div></div>
     <div class="metric-card"><div class="metric-label">Decisions needed</div><div class="metric-val ${m.decisionsNeeded > 0 ? 'warn' : ''}">${m.decisionsNeeded}</div></div>
   `;
-
-  // Properties
   const urgent = d.properties.filter(p => p.requiresDecision);
   const monitor = d.properties.filter(p => !p.requiresDecision);
-
   document.getElementById('urgent-props').innerHTML = urgent.length
     ? urgent.map(propCard).join('')
     : '<div style="color:var(--text-faint);font-size:13px;padding:0.75rem 0;">No properties require a decision this week.</div>';
-
   document.getElementById('monitor-props').innerHTML = monitor.length
     ? monitor.map(propCard).join('')
     : '<div style="color:var(--text-faint);font-size:13px;padding:0.75rem 0;">No properties in monitoring.</div>';
-
-  // Decisions
   document.getElementById('decisions-box').innerHTML = d.decisions && d.decisions.length
     ? d.decisions.map((dec, i) => `
         <div class="decision-row">
@@ -712,7 +600,6 @@ function renderDashboard(d) {
           <div class="decision-tag tag-${dec.tagColor || 'approve'}">${dec.tag}</div>
         </div>`).join('')
     : '<div class="decision-row"><div class="decision-text" style="color:var(--text-faint);">No decisions required this week.</div></div>';
-
   document.getElementById('dashboard').style.display = 'block';
 }
 
@@ -722,7 +609,6 @@ function propCard(p) {
   const domColor = p.daysOnMarket <= 20 ? '#2d7a3a' : p.daysOnMarket <= 35 ? '#b8680a' : '#c0392b';
   const badgeClass = { red: 'badge-red', amber: 'badge-amber', green: 'badge-green', gray: 'badge-gray' }[p.badgeColor] || 'badge-gray';
   const sentClass = { green: 'green', red: 'red', amber: 'amber' }[p.sentimentColor] || '';
-
   return `
     <div class="prop-card ${p.status}">
       <div>
