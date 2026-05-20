@@ -6,302 +6,98 @@
 <title>Foundation Homes — Weekly Showings Report</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
-
   :root {
-    --bg: #f5f4f0;
-    --surface: #ffffff;
-    --surface2: #f0ede8;
-    --border: #e0dbd3;
-    --border-strong: #c8c2b8;
-    --text: #1a1814;
-    --text-muted: #6b6560;
-    --text-faint: #9e9890;
-    --red: #c0392b;
-    --red-bg: #fdf0ee;
-    --red-border: #f0c4be;
-    --amber: #b8680a;
-    --amber-bg: #fdf6ee;
-    --amber-border: #f0d8b0;
-    --green: #2d7a3a;
-    --green-bg: #eef6f0;
-    --green-border: #b8dfc0;
-    --gray: #5a5550;
-    --gray-bg: #f0ede8;
-    --gray-border: #d0ccc5;
-    --accent: #1a1814;
-    --mono: 'DM Mono', monospace;
-    --sans: 'DM Sans', sans-serif;
+    --bg: #f5f4f0; --surface: #ffffff; --surface2: #f0ede8;
+    --border: #e0dbd3; --border-strong: #c8c2b8; --text: #1a1814;
+    --text-muted: #6b6560; --text-faint: #9e9890;
+    --red: #c0392b; --red-bg: #fdf0ee; --red-border: #f0c4be;
+    --amber: #b8680a; --amber-bg: #fdf6ee; --amber-border: #f0d8b0;
+    --green: #2d7a3a; --green-bg: #eef6f0; --green-border: #b8dfc0;
+    --gray: #5a5550; --gray-bg: #f0ede8; --gray-border: #d0ccc5;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  .site-header {
-    background: var(--text);
-    color: #f5f4f0;
-    padding: 0 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 52px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .site-header .logo {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    color: #f5f4f0;
-  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+  .site-header { background: var(--text); color: #f5f4f0; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 52px; position: sticky; top: 0; z-index: 100; }
+  .site-header .logo { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.04em; color: #f5f4f0; }
   .site-header .logo span { color: #9e9890; }
   .header-meta { font-family: var(--mono); font-size: 11px; color: #6b6560; }
-
   .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
-
   #upload-section { margin-bottom: 2rem; }
-
-  .upload-zone {
-    border: 1.5px dashed var(--border-strong);
-    border-radius: 8px;
-    background: var(--surface);
-    padding: 2.5rem 2rem;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .upload-zone:hover, .upload-zone.drag-over {
-    border-color: var(--text);
-    background: var(--surface2);
-  }
+  .upload-zone { border: 1.5px dashed var(--border-strong); border-radius: 8px; background: var(--surface); padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--text); background: var(--surface2); }
   .upload-icon { width: 40px; height: 40px; margin: 0 auto 1rem; opacity: 0.3; }
   .upload-title { font-weight: 500; font-size: 15px; margin-bottom: 4px; }
   .upload-sub { font-size: 13px; color: var(--text-muted); }
   .upload-sub strong { color: var(--text); font-weight: 500; }
   #file-input { display: none; }
-
-  .upload-btn {
-    display: inline-block;
-    margin-top: 1rem;
-    padding: 8px 20px;
-    background: var(--text);
-    color: #f5f4f0;
-    border-radius: 4px;
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.03em;
-    cursor: pointer;
-    border: none;
-    transition: opacity 0.15s;
-  }
+  .upload-btn { display: inline-block; margin-top: 1rem; padding: 8px 20px; background: var(--text); color: #f5f4f0; border-radius: 4px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.03em; cursor: pointer; border: none; transition: opacity 0.15s; }
   .upload-btn:hover { opacity: 0.8; }
-
-  #status-bar {
-    display: none;
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: 6px;
-    padding: 0.85rem 1.1rem;
-    margin-bottom: 1.5rem;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .spinner {
-    width: 14px; height: 14px;
-    border: 2px solid var(--border);
-    border-top-color: var(--text);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    flex-shrink: 0;
-  }
+  #status-bar { display: none; background: var(--surface); border: 0.5px solid var(--border); border-radius: 6px; padding: 0.85rem 1.1rem; margin-bottom: 1.5rem; font-family: var(--mono); font-size: 12px; color: var(--text-muted); align-items: center; gap: 10px; }
+  #status-bar.visible { display: flex; }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #status-bar.hidden { display: none !important; }
-
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 8px;
-    margin-bottom: 1.75rem;
-  }
-  .metric-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: 6px;
-    padding: 0.85rem 1rem;
-  }
-  .metric-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 5px;
-  }
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 1.75rem; }
+  .metric-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 6px; padding: 0.85rem 1rem; }
+  .metric-label { font-family: var(--mono); font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
   .metric-val { font-size: 26px; font-weight: 300; color: var(--text); line-height: 1; }
   .metric-val.warn { color: var(--red); }
-  .metric-sub { font-size: 11px; color: var(--text-faint); margin-top: 4px; }
-
-  .sec-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.65rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 0.5px solid var(--border);
-  }
-
+  .sec-label { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.65rem; padding-bottom: 0.5rem; border-bottom: 0.5px solid var(--border); }
   .props-section { margin-bottom: 2rem; }
-
-  .prop-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: 6px;
-    padding: 1rem 1.1rem;
-    margin-bottom: 0.5rem;
-    display: grid;
-    grid-template-columns: minmax(0,1.8fr) minmax(0,1fr) minmax(0,2fr);
-    gap: 1.25rem;
-    align-items: start;
-    border-left-width: 3px;
-    transition: box-shadow 0.15s;
-  }
+  .prop-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 6px; padding: 1rem 1.1rem; margin-bottom: 0.5rem; display: grid; grid-template-columns: minmax(0,1.8fr) minmax(0,1fr) minmax(0,2fr); gap: 1.25rem; align-items: start; border-left-width: 3px; transition: box-shadow 0.15s; }
   .prop-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
   .prop-card.urgent { border-left-color: var(--red); }
   .prop-card.caution { border-left-color: var(--amber); }
   .prop-card.positive { border-left-color: var(--green); }
   .prop-card.blocked { border-left-color: var(--border-strong); }
-
   .prop-name { font-weight: 500; font-size: 13px; color: var(--text); }
   .prop-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
-  .badge {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin-top: 6px;
-    letter-spacing: 0.02em;
-  }
+  .badge { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; margin-top: 6px; letter-spacing: 0.02em; }
   .badge-red { background: var(--red-bg); color: var(--red); border: 0.5px solid var(--red-border); }
   .badge-amber { background: var(--amber-bg); color: var(--amber); border: 0.5px solid var(--amber-border); }
   .badge-green { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--green-border); }
   .badge-gray { background: var(--gray-bg); color: var(--gray); border: 0.5px solid var(--gray-border); }
-
   .stats-col { display: flex; flex-direction: column; gap: 5px; }
   .stat-row { display: flex; justify-content: space-between; font-size: 12px; gap: 6px; }
   .stat-key { color: var(--text-muted); }
   .stat-val { font-weight: 500; text-align: right; }
-  .stat-val.red { color: var(--red); }
-  .stat-val.amber { color: var(--amber); }
-  .stat-val.green { color: var(--green); }
-
+  .stat-val.red { color: var(--red); } .stat-val.amber { color: var(--amber); } .stat-val.green { color: var(--green); }
   .dom-bar-wrap { margin-top: 6px; }
   .dom-bar-track { background: var(--border); border-radius: 2px; height: 4px; width: 100%; overflow: hidden; }
   .dom-bar-fill { height: 100%; border-radius: 2px; }
-  .dom-bar-labels {
-    display: flex;
-    justify-content: space-between;
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-faint);
-    margin-top: 3px;
-  }
-
+  .dom-bar-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-top: 3px; }
   .action-box { background: var(--surface2); border-radius: 4px; padding: 0.65rem 0.8rem; }
-  .action-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 5px;
-  }
+  .action-label { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
   .action-text { font-size: 12px; color: var(--text); line-height: 1.55; }
-  .action-text.red { color: var(--red); }
-  .action-text.amber { color: var(--amber); }
-  .action-text.green { color: var(--green); }
-  .action-text.gray { color: var(--gray); }
-
-  .decisions-box {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 2rem;
-  }
-  .decision-row {
-    display: flex;
-    gap: 12px;
-    align-items: baseline;
-    padding: 0.75rem 1.1rem;
-    border-bottom: 0.5px solid var(--border);
-    font-size: 13px;
-  }
+  .action-text.red { color: var(--red); } .action-text.amber { color: var(--amber); } .action-text.green { color: var(--green); } .action-text.gray { color: var(--gray); }
+  .decisions-box { background: var(--surface); border: 0.5px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 2rem; }
+  .decision-row { display: flex; gap: 12px; align-items: baseline; padding: 0.75rem 1.1rem; border-bottom: 0.5px solid var(--border); font-size: 13px; }
   .decision-row:last-child { border-bottom: none; }
   .decision-num { font-family: var(--mono); font-size: 10px; color: var(--text-faint); min-width: 16px; padding-top: 2px; }
   .decision-text { flex: 1; color: var(--text); line-height: 1.5; }
-  .decision-tag {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 20px;
-    white-space: nowrap;
-  }
+  .decision-tag { font-family: var(--mono); font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
   .tag-approve { background: var(--red-bg); color: var(--red); border: 0.5px solid var(--red-border); }
   .tag-op { background: var(--amber-bg); color: var(--amber); border: 0.5px solid var(--amber-border); }
   .tag-info { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--green-border); }
-
-  .report-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 0.5px solid var(--border);
-  }
+  .report-header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 8px; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 0.5px solid var(--border); }
   .report-title { font-size: 20px; font-weight: 500; }
   .report-sub { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
   .report-date { font-family: var(--mono); font-size: 11px; color: var(--text-faint); }
-
   #empty-state { text-align: center; padding: 3rem 2rem; color: var(--text-faint); font-size: 13px; }
   #empty-state p { margin-top: 0.5rem; }
   #dashboard { display: none; }
-
-  .error-box {
-    background: var(--red-bg);
-    border: 0.5px solid var(--red-border);
-    border-radius: 6px;
-    padding: 1rem 1.1rem;
-    color: var(--red);
-    font-size: 13px;
-    margin-bottom: 1rem;
-  }
-
+  .error-box { background: var(--red-bg); border: 0.5px solid var(--red-border); border-radius: 6px; padding: 1rem 1.1rem; color: var(--red); font-size: 13px; margin-bottom: 1rem; }
   hr { border: none; border-top: 0.5px solid var(--border); margin: 1.5rem 0; }
-
+  .download-btn { display: inline-block; padding: 7px 16px; background: var(--surface); color: var(--text); border: 0.5px solid var(--border-strong); border-radius: 4px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.03em; cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap; }
+  .download-btn:hover { background: var(--surface2); border-color: var(--text); }
+  @media print {
+    .site-header, #upload-section, #status-bar, #error-box, #empty-state, .download-btn { display: none !important; }
+    body { background: white; font-size: 12px; }
+    .container { max-width: 100%; padding: 0.5rem; }
+    .prop-card { break-inside: avoid; box-shadow: none !important; }
+    .metrics-grid { grid-template-columns: repeat(6, 1fr); }
+    #dashboard { display: block !important; }
+  }
   @media (max-width: 640px) {
     .prop-card { grid-template-columns: 1fr; }
     .container { padding: 1rem; }
@@ -309,14 +105,11 @@
 </style>
 </head>
 <body>
-
 <header class="site-header">
   <div class="logo">FOUNDATION HOMES <span>/ SHOWINGS</span></div>
   <div class="header-meta" id="report-week-label">Weekly Report Dashboard</div>
 </header>
-
 <div class="container">
-
   <div id="upload-section">
     <div class="upload-zone" id="drop-zone">
       <svg class="upload-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -329,26 +122,25 @@
       <input type="file" id="file-input" accept=".zip,.pdf" multiple>
     </div>
   </div>
-
-  <div id="status-bar" class="hidden">
+  <div id="status-bar">
     <div class="spinner"></div>
     <span id="status-text">Reading PDFs...</span>
   </div>
-
   <div id="error-box" class="error-box" style="display:none;"></div>
-
   <div id="empty-state">
     <p>Upload your weekly ZIP file above to generate the report.</p>
     <p>The dashboard will parse all showing PDFs and render automatically.</p>
   </div>
-
   <div id="dashboard">
     <div class="report-header">
       <div>
         <div class="report-title" id="dash-title">Weekly Showings Report</div>
         <div class="report-sub" id="dash-sub"></div>
       </div>
-      <div class="report-date" id="dash-date"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="report-date" id="dash-date"></div>
+        <button class="download-btn" onclick="window.print()">↓ Download PDF</button>
+      </div>
     </div>
     <div class="metrics-grid" id="metrics-grid"></div>
     <div class="props-section">
@@ -363,28 +155,16 @@
     <div class="sec-label" style="margin-bottom:0.75rem;">Owner — decisions needed this week</div>
     <div class="decisions-box" id="decisions-box"></div>
   </div>
-
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
 <script>
 const API_URL = "/api/claude";
-
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
-
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  handleFiles(Array.from(e.dataTransfer.files));
-});
-fileInput.addEventListener('change', e => {
-  if (e.target.files.length) handleFiles(Array.from(e.target.files));
-});
-
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(Array.from(e.dataTransfer.files)); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(Array.from(e.target.files)); });
 function handleFiles(files) {
   const zips = files.filter(f => f.name.toLowerCase().endsWith('.zip'));
   const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
@@ -392,22 +172,10 @@ function handleFiles(files) {
   else if (pdfs.length > 0) processPdfs(pdfs);
   else showError('Please upload a .zip file or one or more .pdf files.');
 }
-
-function setStatus(msg) {
-  const bar = document.getElementById('status-bar');
-  bar.style.display = 'flex';
-  bar.classList.remove('hidden');
-  document.getElementById('status-text').textContent = msg;
-}
-function hideStatus() { document.getElementById('status-bar').style.display = 'none'; }
-function showError(msg) {
-  hideStatus();
-  const box = document.getElementById('error-box');
-  box.textContent = msg;
-  box.style.display = 'block';
-}
+function setStatus(msg) { const b = document.getElementById('status-bar'); b.classList.add('visible'); document.getElementById('status-text').textContent = msg; }
+function hideStatus() { document.getElementById('status-bar').classList.remove('visible'); }
+function showError(msg) { hideStatus(); const b = document.getElementById('error-box'); b.textContent = msg; b.style.display = 'block'; }
 function hideError() { document.getElementById('error-box').style.display = 'none'; }
-
 async function processZip(file) {
   hideError();
   document.getElementById('dashboard').style.display = 'none';
@@ -420,218 +188,117 @@ async function processZip(file) {
     setStatus(`Found ${pdfFiles.length} showing reports — extracting text...`);
     const pdfTexts = [];
     for (let i = 0; i < pdfFiles.length; i++) {
-      const pdfFile = pdfFiles[i];
-      setStatus(`Reading PDF ${i + 1} of ${pdfFiles.length}: ${pdfFile.name.split('/').pop()}...`);
-      const base64 = await pdfFile.async('base64');
-      const text = await extractPdfText(base64, pdfFile.name);
-      pdfTexts.push({ name: pdfFile.name, text });
+      const pf = pdfFiles[i];
+      setStatus(`Reading PDF ${i+1} of ${pdfFiles.length}: ${pf.name.split('/').pop()}...`);
+      const base64 = await pf.async('base64');
+      pdfTexts.push({ name: pf.name, text: await extractPdfText(base64) });
     }
     await finishProcessing(pdfTexts);
-  } catch (err) { console.error(err); showError(err.message); }
+  } catch(err) { console.error(err); showError(err.message); }
 }
-
 async function processPdfs(files) {
   hideError();
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('empty-state').style.display = 'none';
   try {
-    setStatus(`Found ${files.length} PDF${files.length > 1 ? 's' : ''} — extracting text...`);
+    setStatus(`Found ${files.length} PDF${files.length>1?'s':''} — extracting text...`);
     const pdfTexts = [];
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      setStatus(`Reading PDF ${i + 1} of ${files.length}: ${file.name}...`);
-      const base64 = await fileToBase64(file);
-      const text = await extractPdfText(base64, file.name);
-      pdfTexts.push({ name: file.name, text });
+      setStatus(`Reading PDF ${i+1} of ${files.length}: ${files[i].name}...`);
+      const base64 = await fileToBase64(files[i]);
+      pdfTexts.push({ name: files[i].name, text: await extractPdfText(base64) });
     }
     await finishProcessing(pdfTexts);
-  } catch (err) { console.error(err); showError(err.message); }
+  } catch(err) { console.error(err); showError(err.message); }
 }
-
 function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = () => reject(new Error('Failed to read file: ' + file.name));
-    reader.readAsDataURL(file);
+  return new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Failed to read: ' + file.name));
+    r.readAsDataURL(file);
   });
 }
-
 async function finishProcessing(pdfTexts) {
   setStatus('Analyzing showing data and generating report...');
-  const reportData = await analyzeShowings(pdfTexts);
+  const data = await analyzeShowings(pdfTexts);
   setStatus('Rendering dashboard...');
-  renderDashboard(reportData);
+  renderDashboard(data);
   hideStatus();
-  if (reportData.weekLabel) document.getElementById('report-week-label').textContent = reportData.weekLabel;
+  if (data.weekLabel) document.getElementById('report-week-label').textContent = data.weekLabel;
 }
-
-async function extractPdfText(base64, filename) {
-  const response = await fetch(API_URL, {
+async function extractPdfText(base64) {
+  const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
       max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-          { type: 'text', text: 'Extract all text from this MLS showing report PDF. Return ONLY the raw text content, nothing else.' }
-        ]
-      }]
+      messages: [{ role: 'user', content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+        { type: 'text', text: 'Extract all text from this MLS showing report PDF. Return ONLY the raw text content, nothing else.' }
+      ]}]
     })
   });
-  const data = await response.json();
-  if (data.error) throw new Error('API error: ' + data.error.message);
-  return data.content.map(b => b.text || '').join('\n');
+  const d = await res.json();
+  if (d.error) throw new Error('API error: ' + d.error.message);
+  return d.content.map(b => b.text||'').join('\n');
 }
-
 async function analyzeShowings(pdfTexts) {
   const combined = pdfTexts.map(p => `=== FILE: ${p.name} ===\n${p.text}`).join('\n\n');
-  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const prompt = `You are analyzing MLS weekly showing reports for a home builder (Foundation Homes). Today's date is ${today}.
-
-Here are the extracted texts from all showing report PDFs this week:
-
-${combined}
-
-Analyze these reports and return ONLY a valid JSON object with this exact structure. No markdown, no explanation, just JSON:
-
-{
-  "weekLabel": "Week of [date range from reports]",
-  "reportTitle": "Weekly Showings Report",
-  "reportSub": "Foundation Homes · [date range] · Emily Schroeder, MacDoc",
-  "reportDate": "[today's date]",
-  "metrics": {
-    "totalShowings": 0,
-    "feedbackRate": "X of Y (Z%)",
-    "positiveSentiment": "X%",
-    "avgDom": 0,
-    "listingsOver30Days": 0,
-    "decisionsNeeded": 0
-  },
-  "properties": [
-    {
-      "address": "street address",
-      "city": "city, state",
-      "price": "$XXX,XXX",
-      "listPrice": 0,
-      "listedDate": "Month D, YYYY",
-      "daysOnMarket": 0,
-      "showingsThisWeek": 0,
-      "totalShowings": 0,
-      "feedbackReceived": "X/Y",
-      "sentiment": "Positive",
-      "sentimentColor": "green",
-      "priceFeedback": "Just right",
-      "status": "caution",
-      "badgeText": "badge label",
-      "badgeColor": "gray",
-      "keyNotes": "1-2 sentence summary",
-      "recommendedAction": "Direct recommendation",
-      "actionColor": "gray",
-      "requiresDecision": false
-    }
-  ],
-  "decisions": [
-    {
-      "property": "short address",
-      "action": "direct owner ask",
-      "tag": "Approve",
-      "tagColor": "approve"
-    }
-  ]
-}
-
-Rules:
-- Sort: requiresDecision=true first by daysOnMarket desc, then monitoring by daysOnMarket desc
-- status=urgent: price concerns, 30+ days no offers, recurring negative feedback
-- status=blocked: site or construction issue
-- status=positive: active lead, strong interest, loved/liked sentiment
-- status=caution: monitoring, mixed, new listing
-- daysOnMarket: calculate from listed date to today
-- Be direct in recommendedAction, no hedging
-- decisions: only requiresDecision=true properties, ordered by urgency`;
-
-  const response = await fetch(API_URL, {
+  const today = new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+  const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
       max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }]
+      messages: [{ role: 'user', content: `You are analyzing MLS weekly showing reports for a home builder (Foundation Homes). Today's date is ${today}.\n\nHere are the extracted texts:\n\n${combined}\n\nReturn ONLY valid JSON, no markdown:\n{\n"weekLabel":"Week of [date range]","reportTitle":"Weekly Showings Report","reportSub":"Foundation Homes · [date range] · Emily Schroeder, MacDoc","reportDate":"[today]","metrics":{"totalShowings":0,"feedbackRate":"X of Y (Z%)","positiveSentiment":"X%","avgDom":0,"listingsOver30Days":0,"decisionsNeeded":0},"properties":[{"address":"","city":"","price":"","listPrice":0,"listedDate":"","daysOnMarket":0,"showingsThisWeek":0,"totalShowings":0,"feedbackReceived":"","sentiment":"","sentimentColor":"gray","priceFeedback":"","status":"caution","badgeText":"","badgeColor":"gray","keyNotes":"","recommendedAction":"","actionColor":"gray","requiresDecision":false}],"decisions":[{"property":"","action":"","tag":"Approve","tagColor":"approve"}]}\n\nRules: sort requiresDecision=true first by DOM desc; urgent=price concerns/30+days no offers/negative feedback; blocked=site issue; positive=active lead/loved; caution=monitoring/new; be direct in recommendedAction.` }]
     })
   });
-  const data = await response.json();
-  if (data.error) throw new Error('API error: ' + data.error.message);
-  const raw = data.content.map(b => b.text || '').join('');
-  const clean = raw.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const d = await res.json();
+  if (d.error) throw new Error('API error: ' + d.error.message);
+  const raw = d.content.map(b=>b.text||'').join('');
+  return JSON.parse(raw.replace(/```json|```/g,'').trim());
 }
-
 function renderDashboard(d) {
-  document.getElementById('dash-title').textContent = d.reportTitle || 'Weekly Showings Report';
-  document.getElementById('dash-sub').textContent = d.reportSub || '';
-  document.getElementById('dash-date').textContent = d.reportDate || '';
+  document.getElementById('dash-title').textContent = d.reportTitle||'Weekly Showings Report';
+  document.getElementById('dash-sub').textContent = d.reportSub||'';
+  document.getElementById('dash-date').textContent = d.reportDate||'';
   const m = d.metrics;
   document.getElementById('metrics-grid').innerHTML = `
     <div class="metric-card"><div class="metric-label">Showings this week</div><div class="metric-val">${m.totalShowings}</div></div>
     <div class="metric-card"><div class="metric-label">Feedback rate</div><div class="metric-val">${m.feedbackRate}</div></div>
     <div class="metric-card"><div class="metric-label">Positive sentiment</div><div class="metric-val">${m.positiveSentiment}</div></div>
     <div class="metric-card"><div class="metric-label">Avg days on market</div><div class="metric-val">${m.avgDom}</div></div>
-    <div class="metric-card"><div class="metric-label">Listings 30+ days</div><div class="metric-val ${m.listingsOver30Days > 0 ? 'warn' : ''}">${m.listingsOver30Days}</div></div>
-    <div class="metric-card"><div class="metric-label">Decisions needed</div><div class="metric-val ${m.decisionsNeeded > 0 ? 'warn' : ''}">${m.decisionsNeeded}</div></div>
-  `;
-  const urgent = d.properties.filter(p => p.requiresDecision);
-  const monitor = d.properties.filter(p => !p.requiresDecision);
-  document.getElementById('urgent-props').innerHTML = urgent.length
-    ? urgent.map(propCard).join('')
-    : '<div style="color:var(--text-faint);font-size:13px;padding:0.75rem 0;">No properties require a decision this week.</div>';
-  document.getElementById('monitor-props').innerHTML = monitor.length
-    ? monitor.map(propCard).join('')
-    : '<div style="color:var(--text-faint);font-size:13px;padding:0.75rem 0;">No properties in monitoring.</div>';
-  document.getElementById('decisions-box').innerHTML = d.decisions && d.decisions.length
-    ? d.decisions.map((dec, i) => `
-        <div class="decision-row">
-          <div class="decision-num">${i + 1}</div>
-          <div class="decision-text"><strong>${dec.property}</strong> — ${dec.action}</div>
-          <div class="decision-tag tag-${dec.tagColor || 'approve'}">${dec.tag}</div>
-        </div>`).join('')
+    <div class="metric-card"><div class="metric-label">Listings 30+ days</div><div class="metric-val ${m.listingsOver30Days>0?'warn':''}">${m.listingsOver30Days}</div></div>
+    <div class="metric-card"><div class="metric-label">Decisions needed</div><div class="metric-val ${m.decisionsNeeded>0?'warn':''}">${m.decisionsNeeded}</div></div>`;
+  const urgent = d.properties.filter(p=>p.requiresDecision);
+  const monitor = d.properties.filter(p=>!p.requiresDecision);
+  document.getElementById('urgent-props').innerHTML = urgent.length ? urgent.map(propCard).join('') : '<div style="color:var(--text-faint);font-size:13px;padding:0.75rem 0;">No properties require a decision this week.</div>';
+  document.getElementById('monitor-props').innerHTML = monitor.length ? monitor.map(propCard).join('') : '<div style="color:var(--text-faint);font-size:13px;padding:0.75rem 0;">No properties in monitoring.</div>';
+  document.getElementById('decisions-box').innerHTML = d.decisions&&d.decisions.length
+    ? d.decisions.map((dec,i)=>`<div class="decision-row"><div class="decision-num">${i+1}</div><div class="decision-text"><strong>${dec.property}</strong> — ${dec.action}</div><div class="decision-tag tag-${dec.tagColor||'approve'}">${dec.tag}</div></div>`).join('')
     : '<div class="decision-row"><div class="decision-text" style="color:var(--text-faint);">No decisions required this week.</div></div>';
   document.getElementById('dashboard').style.display = 'block';
 }
-
 function propCard(p) {
-  const domMax = 90;
-  const domPct = Math.min(100, Math.round((p.daysOnMarket / domMax) * 100));
-  const domColor = p.daysOnMarket <= 20 ? '#2d7a3a' : p.daysOnMarket <= 35 ? '#b8680a' : '#c0392b';
-  const badgeClass = { red: 'badge-red', amber: 'badge-amber', green: 'badge-green', gray: 'badge-gray' }[p.badgeColor] || 'badge-gray';
-  const sentClass = { green: 'green', red: 'red', amber: 'amber' }[p.sentimentColor] || '';
-  return `
-    <div class="prop-card ${p.status}">
-      <div>
-        <div class="prop-name">${p.address}</div>
-        <div class="prop-meta">${p.city} &nbsp;·&nbsp; ${p.price}</div>
-        <span class="badge ${badgeClass}">${p.badgeText}</span>
-      </div>
-      <div class="stats-col">
-        <div class="stat-row"><span class="stat-key">Days on market</span><span class="stat-val ${p.daysOnMarket > 35 ? 'red' : p.daysOnMarket > 20 ? 'amber' : 'green'}">${p.daysOnMarket}</span></div>
-        <div class="stat-row"><span class="stat-key">Showings (wk)</span><span class="stat-val">${p.showingsThisWeek}</span></div>
-        <div class="stat-row"><span class="stat-key">Total showings</span><span class="stat-val">${p.totalShowings}</span></div>
-        <div class="stat-row"><span class="stat-key">Feedback</span><span class="stat-val">${p.feedbackReceived}</span></div>
-        <div class="stat-row"><span class="stat-key">Sentiment</span><span class="stat-val ${sentClass}">${p.sentiment}</span></div>
-        <div class="dom-bar-wrap">
-          <div class="dom-bar-track"><div class="dom-bar-fill" style="width:${domPct}%;background:${domColor};"></div></div>
-          <div class="dom-bar-labels"><span>Listed ${p.listedDate}</span><span>${p.daysOnMarket}d</span></div>
-        </div>
-      </div>
-      <div class="action-box">
-        <div class="action-label">${p.requiresDecision ? 'Recommended action' : 'Status'}</div>
-        <div class="action-text ${p.actionColor || ''}">${p.recommendedAction}</div>
-        ${p.keyNotes ? `<div class="action-text" style="margin-top:6px;color:var(--text-muted);">${p.keyNotes}</div>` : ''}
-      </div>
-    </div>`;
+  const pct = Math.min(100,Math.round((p.daysOnMarket/90)*100));
+  const col = p.daysOnMarket<=20?'#2d7a3a':p.daysOnMarket<=35?'#b8680a':'#c0392b';
+  const bc = {red:'badge-red',amber:'badge-amber',green:'badge-green',gray:'badge-gray'}[p.badgeColor]||'badge-gray';
+  const sc = {green:'green',red:'red',amber:'amber'}[p.sentimentColor]||'';
+  return `<div class="prop-card ${p.status}">
+    <div><div class="prop-name">${p.address}</div><div class="prop-meta">${p.city} &nbsp;·&nbsp; ${p.price}</div><span class="badge ${bc}">${p.badgeText}</span></div>
+    <div class="stats-col">
+      <div class="stat-row"><span class="stat-key">Days on market</span><span class="stat-val ${p.daysOnMarket>35?'red':p.daysOnMarket>20?'amber':'green'}">${p.daysOnMarket}</span></div>
+      <div class="stat-row"><span class="stat-key">Showings (wk)</span><span class="stat-val">${p.showingsThisWeek}</span></div>
+      <div class="stat-row"><span class="stat-key">Total showings</span><span class="stat-val">${p.totalShowings}</span></div>
+      <div class="stat-row"><span class="stat-key">Feedback</span><span class="stat-val">${p.feedbackReceived}</span></div>
+      <div class="stat-row"><span class="stat-key">Sentiment</span><span class="stat-val ${sc}">${p.sentiment}</span></div>
+      <div class="dom-bar-wrap"><div class="dom-bar-track"><div class="dom-bar-fill" style="width:${pct}%;background:${col};"></div></div><div class="dom-bar-labels"><span>Listed ${p.listedDate}</span><span>${p.daysOnMarket}d</span></div></div>
+    </div>
+    <div class="action-box"><div class="action-label">${p.requiresDecision?'Recommended action':'Status'}</div><div class="action-text ${p.actionColor||''}">${p.recommendedAction}</div>${p.keyNotes?`<div class="action-text" style="margin-top:6px;color:var(--text-muted);">${p.keyNotes}</div>`:''}</div>
+  </div>`;
 }
 </script>
 </body>
