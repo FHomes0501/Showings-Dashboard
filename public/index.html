@@ -473,7 +473,6 @@ async function extractPdfText(base64, filename) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
       max_tokens: 1000,
-      extra_headers: { 'anthropic-beta': 'pdfs-2024-09-25' },
       messages: [{
         role: 'user',
         content: [
