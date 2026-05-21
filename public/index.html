@@ -23,13 +23,13 @@
   .header-meta{font-family:var(--mono);font-size:11px;color:#6b6560;}
   .container{max-width:960px;margin:0 auto;padding:2rem 1.5rem;}
   #upload-section{margin-bottom:2rem;}
-  .upload-zone{border:1.5px dashed var(--border-strong);border-radius:8px;background:var(--surface);padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;}
-  .upload-zone:hover,.upload-zone.drag-over{border-color:var(--text);background:var(--surface2);}
+  #file-input{display:none;}
+  .upload-zone{border:1.5px dashed var(--border-strong);border-radius:8px;background:var(--surface);padding:2.5rem 2rem;text-align:center;transition:border-color .15s,background .15s;}
+  .upload-zone.drag-over{border-color:var(--text);background:var(--surface2);}
   .upload-icon{width:40px;height:40px;margin:0 auto 1rem;opacity:.3;}
   .upload-title{font-weight:500;font-size:15px;margin-bottom:4px;}
   .upload-sub{font-size:13px;color:var(--text-muted);}
   .upload-sub strong{color:var(--text);font-weight:500;}
-  #file-input{display:none;}
   .upload-btn{display:inline-block;margin-top:1rem;padding:8px 20px;background:var(--text);color:#f5f4f0;border-radius:4px;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.03em;cursor:pointer;border:none;transition:opacity .15s;}
   .upload-btn:hover{opacity:.8;}
   #status-bar{display:none;background:var(--surface);border:.5px solid var(--border);border-radius:6px;padding:.85rem 1.1rem;margin-bottom:1.5rem;font-family:var(--mono);font-size:12px;color:var(--text-muted);align-items:center;gap:10px;}
@@ -105,6 +105,9 @@
   <div class="logo">FOUNDATION HOMES <span>/ SHOWINGS</span></div>
   <div class="header-meta" id="report-week-label">Weekly Report Dashboard</div>
 </header>
+
+<input type="file" id="file-input" accept=".zip,.pdf" multiple style="display:none;">
+
 <div class="container">
   <div id="upload-section">
     <div class="upload-zone" id="drop-zone">
@@ -114,8 +117,7 @@
       </svg>
       <div class="upload-title">Drop your showing reports here</div>
       <div class="upload-sub">Accepts a <strong>ZIP file</strong> (multiple PDFs) or <strong>individual PDF files</strong></div>
-      <button class="upload-btn" onclick="document.getElementById('file-input').click()">Choose file(s)</button>
-      <input type="file" id="file-input" accept=".zip,.pdf" multiple>
+      <button class="upload-btn" id="choose-btn">Choose file(s)</button>
     </div>
   </div>
   <div id="status-bar">
@@ -152,32 +154,82 @@
     <div class="decisions-box" id="decisions-box"></div>
   </div>
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 var API_URL = '/api/claude';
-var dropZone = document.getElementById('drop-zone');
 var fileInput = document.getElementById('file-input');
+var dropZone = document.getElementById('drop-zone');
+var chooseBtn = document.getElementById('choose-btn');
 
-dropZone.addEventListener('click', function() { fileInput.click(); }); dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
-dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(Array.from(e.dataTransfer.files)); });
-fileInput.addEventListener('change', function() { if (this.files.length) handleFiles(Array.from(this.files)); });
+// Button opens file picker
+chooseBtn.addEventListener('click', function(e) {
+  e.stopPropagation();
+  fileInput.click();
+});
+
+// File input change
+fileInput.addEventListener('change', function() {
+  if (this.files && this.files.length > 0) {
+    handleFiles(Array.from(this.files));
+  }
+});
+
+// Drag and drop
+dropZone.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', function(e) {
+  e.stopPropagation();
+  dropZone.classList.remove('drag-over');
+});
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length > 0) {
+    handleFiles(Array.from(e.dataTransfer.files));
+  }
+});
 
 function handleFiles(files) {
+  hideError();
   var zips = files.filter(function(f) { return f.name.toLowerCase().endsWith('.zip'); });
   var pdfs = files.filter(function(f) { return f.name.toLowerCase().endsWith('.pdf'); });
+  if (zips.length === 0 && pdfs.length === 0) {
+    showError('Please upload a .zip file or one or more .pdf files.');
+    return;
+  }
+  var names = files.map(function(f) { return f.name; }).join(', ');
+  document.querySelector('.upload-title').textContent = 'Processing: ' + names;
+  document.querySelector('.upload-sub').textContent = 'Please wait — this takes about 30 seconds...';
   if (zips.length > 0) processZip(zips[0]);
-  else if (pdfs.length > 0) processPdfs(pdfs);
-  else showError('Please upload a .zip file or one or more .pdf files.');
+  else processPdfs(pdfs);
 }
 
-function setStatus(msg) { var b = document.getElementById('status-bar'); b.classList.add('visible'); document.getElementById('status-text').textContent = msg; }
+function setStatus(msg) {
+  var b = document.getElementById('status-bar');
+  b.classList.add('visible');
+  document.getElementById('status-text').textContent = msg;
+}
 function hideStatus() { document.getElementById('status-bar').classList.remove('visible'); }
-function showError(msg) { hideStatus(); var b = document.getElementById('error-box'); b.textContent = msg; b.style.display = 'block'; }
+function showError(msg) {
+  hideStatus();
+  resetUploadZone();
+  var b = document.getElementById('error-box');
+  b.textContent = msg;
+  b.style.display = 'block';
+}
 function hideError() { document.getElementById('error-box').style.display = 'none'; }
+function resetUploadZone() {
+  document.querySelector('.upload-title').textContent = 'Drop your showing reports here';
+  document.querySelector('.upload-sub').innerHTML = 'Accepts a <strong>ZIP file</strong> (multiple PDFs) or <strong>individual PDF files</strong>';
+  fileInput.value = '';
+}
 
 async function processZip(file) {
-  hideError();
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('empty-state').style.display = 'none';
   setStatus('Reading ZIP file...');
@@ -185,94 +237,107 @@ async function processZip(file) {
     var zip = await JSZip.loadAsync(file);
     var pdfFiles = Object.values(zip.files).filter(function(f) { return f.name.toLowerCase().endsWith('.pdf') && !f.dir; });
     if (!pdfFiles.length) { showError('No PDF files found in the ZIP.'); return; }
-    setStatus('Found ' + pdfFiles.length + ' showing reports — extracting text...');
+    setStatus('Found ' + pdfFiles.length + ' reports — extracting text...');
     var pdfTexts = [];
     for (var i = 0; i < pdfFiles.length; i++) {
       var pf = pdfFiles[i];
-      setStatus('Reading PDF ' + (i+1) + ' of ' + pdfFiles.length + ': ' + pf.name.split('/').pop() + '...');
+      setStatus('Reading ' + (i+1) + ' of ' + pdfFiles.length + ': ' + pf.name.split('/').pop());
       var base64 = await pf.async('base64');
-      pdfTexts.push({ name: pf.name, text: await extractPdfText(base64) });
+      var text = await extractPdfText(base64, pf.name);
+      pdfTexts.push({ name: pf.name, text: text });
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
 }
 
 async function processPdfs(files) {
-  hideError();
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('empty-state').style.display = 'none';
   try {
-    setStatus('Found ' + files.length + ' PDF' + (files.length > 1 ? 's' : '') + ' — extracting text...');
+    setStatus('Reading ' + files.length + ' PDF' + (files.length > 1 ? 's' : '') + '...');
     var pdfTexts = [];
     for (var i = 0; i < files.length; i++) {
-      setStatus('Reading PDF ' + (i+1) + ' of ' + files.length + ': ' + files[i].name + '...');
+      setStatus('Reading ' + (i+1) + ' of ' + files.length + ': ' + files[i].name);
       var base64 = await fileToBase64(files[i]);
-      pdfTexts.push({ name: files[i].name, text: await extractPdfText(base64) });
+      var text = await extractPdfText(base64, files[i].name);
+      pdfTexts.push({ name: files[i].name, text: text });
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
 }
 
 function fileToBase64(file) {
-  return new Promise(function(res, rej) {
-    var r = new FileReader();
-    r.onload = function() { res(r.result.split(',')[1]); };
-    r.onerror = function() { rej(new Error('Failed to read: ' + file.name)); };
-    r.readAsDataURL(file);
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() { resolve(reader.result.split(',')[1]); };
+    reader.onerror = function() { reject(new Error('Could not read ' + file.name)); };
+    reader.readAsDataURL(file);
   });
 }
 
 async function finishProcessing(pdfTexts) {
-  setStatus('Analyzing showing data and generating report...');
+  setStatus('Analyzing reports and building dashboard...');
   var data = await analyzeShowings(pdfTexts);
-  setStatus('Rendering dashboard...');
   renderDashboard(data);
   hideStatus();
+  resetUploadZone();
   if (data.weekLabel) document.getElementById('report-week-label').textContent = data.weekLabel;
 }
 
 async function extractPdfText(base64, filename) {
-  const res = await fetch(API_URL, {
+  var res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'extract', base64: base64, filename: filename })
   });
-  const d = await res.json();
-  if (d.error) throw new Error('API error: ' + d.error.message);
+  var d = await res.json();
+  if (d.error) throw new Error('Extract error: ' + d.error.message);
   return d.text;
 }
 
 async function analyzeShowings(pdfTexts) {
-  const res = await fetch(API_URL, {
+  var res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'analyze', texts: pdfTexts })
   });
-  const d = await res.json();
-  if (d.error) throw new Error('API error: ' + d.error.message);
+  var d = await res.json();
+  if (d.error) throw new Error('Analyze error: ' + d.error.message);
   return d;
 }
-}
+
 function renderDashboard(d) {
   document.getElementById('dash-title').textContent = d.reportTitle || 'Weekly Showings Report';
   document.getElementById('dash-sub').textContent = d.reportSub || '';
   document.getElementById('dash-date').textContent = d.reportDate || '';
   var m = d.metrics;
   document.getElementById('metrics-grid').innerHTML =
-    '<div class="metric-card"><div class="metric-label">Showings this week</div><div class="metric-val">' + m.totalShowings + '</div></div>' +
-    '<div class="metric-card"><div class="metric-label">Feedback rate</div><div class="metric-val">' + m.feedbackRate + '</div></div>' +
-    '<div class="metric-card"><div class="metric-label">Positive sentiment</div><div class="metric-val">' + m.positiveSentiment + '</div></div>' +
-    '<div class="metric-card"><div class="metric-label">Avg days on market</div><div class="metric-val">' + m.avgDom + '</div></div>' +
-    '<div class="metric-card"><div class="metric-label">Listings 30+ days</div><div class="metric-val ' + (m.listingsOver30Days > 0 ? 'warn' : '') + '">' + m.listingsOver30Days + '</div></div>' +
-    '<div class="metric-card"><div class="metric-label">Decisions needed</div><div class="metric-val ' + (m.decisionsNeeded > 0 ? 'warn' : '') + '">' + m.decisionsNeeded + '</div></div>';
+    mc('Showings this week', m.totalShowings, false) +
+    mc('Feedback rate', m.feedbackRate, false) +
+    mc('Positive sentiment', m.positiveSentiment, false) +
+    mc('Avg days on market', m.avgDom, false) +
+    mc('Listings 30+ days', m.listingsOver30Days, m.listingsOver30Days > 0) +
+    mc('Decisions needed', m.decisionsNeeded, m.decisionsNeeded > 0);
   var urgent = d.properties.filter(function(p) { return p.requiresDecision; });
   var monitor = d.properties.filter(function(p) { return !p.requiresDecision; });
-  document.getElementById('urgent-props').innerHTML = urgent.length ? urgent.map(propCard).join('') : '<div style="color:var(--text-faint);font-size:13px;padding:.75rem 0;">No properties require a decision this week.</div>';
-  document.getElementById('monitor-props').innerHTML = monitor.length ? monitor.map(propCard).join('') : '<div style="color:var(--text-faint);font-size:13px;padding:.75rem 0;">No properties in monitoring.</div>';
+  document.getElementById('urgent-props').innerHTML = urgent.length
+    ? urgent.map(propCard).join('')
+    : '<div style="color:var(--text-faint);font-size:13px;padding:.75rem 0;">No properties require a decision this week.</div>';
+  document.getElementById('monitor-props').innerHTML = monitor.length
+    ? monitor.map(propCard).join('')
+    : '<div style="color:var(--text-faint);font-size:13px;padding:.75rem 0;">No properties in monitoring.</div>';
   document.getElementById('decisions-box').innerHTML = d.decisions && d.decisions.length
-    ? d.decisions.map(function(dec, i) { return '<div class="decision-row"><div class="decision-num">' + (i+1) + '</div><div class="decision-text"><strong>' + dec.property + '</strong> — ' + dec.action + '</div><div class="decision-tag tag-' + (dec.tagColor || 'approve') + '">' + dec.tag + '</div></div>'; }).join('')
+    ? d.decisions.map(function(dec, i) {
+        return '<div class="decision-row"><div class="decision-num">' + (i+1) + '</div>' +
+               '<div class="decision-text"><strong>' + dec.property + '</strong> — ' + dec.action + '</div>' +
+               '<div class="decision-tag tag-' + (dec.tagColor || 'approve') + '">' + dec.tag + '</div></div>';
+      }).join('')
     : '<div class="decision-row"><div class="decision-text" style="color:var(--text-faint);">No decisions required this week.</div></div>';
   document.getElementById('dashboard').style.display = 'block';
+}
+
+function mc(label, val, warn) {
+  return '<div class="metric-card"><div class="metric-label">' + label + '</div><div class="metric-val' + (warn ? ' warn' : '') + '">' + val + '</div></div>';
 }
 
 function propCard(p) {
@@ -282,7 +347,9 @@ function propCard(p) {
   var sc = { green:'green', red:'red', amber:'amber' }[p.sentimentColor] || '';
   var dc = p.daysOnMarket > 35 ? 'red' : p.daysOnMarket > 20 ? 'amber' : 'green';
   return '<div class="prop-card ' + p.status + '">' +
-    '<div><div class="prop-name">' + p.address + '</div><div class="prop-meta">' + p.city + ' &nbsp;&middot;&nbsp; ' + p.price + '</div><span class="badge ' + bc + '">' + p.badgeText + '</span></div>' +
+    '<div><div class="prop-name">' + p.address + '</div>' +
+    '<div class="prop-meta">' + p.city + ' &nbsp;&middot;&nbsp; ' + p.price + '</div>' +
+    '<span class="badge ' + bc + '">' + p.badgeText + '</span></div>' +
     '<div class="stats-col">' +
     '<div class="stat-row"><span class="stat-key">Days on market</span><span class="stat-val ' + dc + '">' + p.daysOnMarket + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Showings (wk)</span><span class="stat-val">' + p.showingsThisWeek + '</span></div>' +
@@ -290,8 +357,7 @@ function propCard(p) {
     '<div class="stat-row"><span class="stat-key">Feedback</span><span class="stat-val">' + p.feedbackReceived + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Sentiment</span><span class="stat-val ' + sc + '">' + p.sentiment + '</span></div>' +
     '<div class="dom-bar-wrap"><div class="dom-bar-track"><div class="dom-bar-fill" style="width:' + pct + '%;background:' + col + ';"></div></div>' +
-    '<div class="dom-bar-labels"><span>Listed ' + p.listedDate + '</span><span>' + p.daysOnMarket + 'd</span></div></div>' +
-    '</div>' +
+    '<div class="dom-bar-labels"><span>Listed ' + p.listedDate + '</span><span>' + p.daysOnMarket + 'd</span></div></div></div>' +
     '<div class="action-box"><div class="action-label">' + (p.requiresDecision ? 'Recommended action' : 'Status') + '</div>' +
     '<div class="action-text ' + (p.actionColor || '') + '">' + p.recommendedAction + '</div>' +
     (p.keyNotes ? '<div class="action-text" style="margin-top:6px;color:var(--text-muted);">' + p.keyNotes + '</div>' : '') +
