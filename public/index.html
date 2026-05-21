@@ -158,10 +158,10 @@ var API_URL = '/api/claude';
 var dropZone = document.getElementById('drop-zone');
 var fileInput = document.getElementById('file-input');
 
-dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('click', function() { fileInput.click(); }); dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
 dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(Array.from(e.dataTransfer.files)); });
-fileInput.addEventListener('change', function(e) { if (e.target.files.length) handleFiles(Array.from(e.target.files)); });
+fileInput.addEventListener('change', function() { if (this.files.length) handleFiles(Array.from(this.files)); });
 
 function handleFiles(files) {
   var zips = files.filter(function(f) { return f.name.toLowerCase().endsWith('.zip'); });
