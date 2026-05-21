@@ -525,41 +525,40 @@ dropZone.addEventListener('drop', e => {
   dropZone.classList.remove('drag-over');
   handleFiles(Array.from(e.dataTransfer.files));
 });
-fileInput.addEventListener('change', e => {
-  if (e.target.files.length) handleFiles(Array.from(e.target.files));
-});
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(Array.from(e.target.files)); });
 
 function handleFiles(files) {
+  hideError();
   const zips = files.filter(f => f.name.toLowerCase().endsWith('.zip'));
   const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
 
-  if (zips.length > 0) {
-    processZip(zips[0]);
-  } else if (pdfs.length > 0) {
-    processPdfs(pdfs);
-  } else {
+  if (zips.length === 0 && pdfs.length === 0) {
     showError('Please upload a .zip file or one or more .pdf files.');
+    return;
   }
+
+  const names = files.map(f => f.name).join(', ');
+  document.querySelector('.upload-title').textContent = 'Files selected — processing...';
+  document.querySelector('.upload-sub').innerHTML = '<strong>' + names + '</strong>';
+
+  if (zips.length > 0) processZip(zips[0]);
+  else processPdfs(pdfs);
 }
 
-// ── STATUS HELPERS ──
-function setStatus(msg) {
-  const bar = document.getElementById('status-bar');
-  bar.style.display = 'flex';
-  bar.classList.remove('hidden');
-  document.getElementById('status-text').textContent = msg;
-}
-function hideStatus() {
-  document.getElementById('status-bar').style.display = 'none';
-}
+function setStatus(msg) { const b = document.getElementById('status-bar'); b.classList.add('visible'); document.getElementById('status-text').textContent = msg; }
+function hideStatus() { document.getElementById('status-bar').classList.remove('visible'); }
 function showError(msg) {
   hideStatus();
-  const box = document.getElementById('error-box');
-  box.textContent = msg;
-  box.style.display = 'block';
+  resetUploadZone();
+  const b = document.getElementById('error-box');
+  b.textContent = msg;
+  b.style.display = 'block';
 }
-function hideError() {
-  document.getElementById('error-box').style.display = 'none';
+function hideError() { document.getElementById('error-box').style.display = 'none'; }
+function resetUploadZone() {
+  document.querySelector('.upload-title').textContent = 'Drop your showing reports here';
+  document.querySelector('.upload-sub').innerHTML = 'Accepts a <strong>ZIP file</strong> (multiple PDFs) or <strong>individual PDF files</strong>';
+  fileInput.value = '';
 }
 
 // ── PROCESS ZIP ──
