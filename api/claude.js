@@ -13,11 +13,11 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   try {
-    const { action } = req.body;
+    const action = req.body.action;
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
     if (action === 'extract') {
-      const { base64, filename } = req.body;
+      const base64 = req.body.base64;
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
-          max_tokens: 1000,
+          max_tokens: 1500,
           messages: [{
             role: 'user',
             content: [
@@ -40,42 +40,86 @@ export default async function handler(req, res) {
       });
       const data = await response.json();
       if (data.error) return res.status(400).json({ error: data.error });
-      const text = data.content.map(b => b.text || '').join('\n');
-      return res.status(200).json({ text });
+      const text = data.content.map(function(b) { return b.text || ''; }).join('\n');
+      return res.status(200).json({ text: text });
 
     } else if (action === 'analyze') {
       const texts = req.body.texts;
 
-      const systemPrompt = 'You are analyzing MLS weekly showing reports for a home builder called Foundation Homes. Today is ' + today + '. Return ONLY a valid JSON object. No markdown. No code blocks. No text before or after the JSON.';
-
-      const dataSection = texts.map(t => {
-        const safeText = t.text
-          .replace(/\\/g, ' ')
-          .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ')
+      const safeData = texts.map(function(t) {
+        const safeName = (t.name || '').replace(/[^\w\s\-\.]/g, '');
+        const safeText = (t.text || '')
+          .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '')
+          .replace(/\\/g, '/')
+          .replace(/"/g, "'")
           .trim();
-        return '=== ' + t.name + ' ===\n' + safeText;
+        return '=== ' + safeName + ' ===\n' + safeText;
       }).join('\n\n');
 
-      const instructions = 'Analyze the showing reports and return a JSON object with this structure:\n' +
-        '{"weekLabel":"Week of [dates]","reportTitle":"Weekly Showings Report","reportSub":"Foundation Homes - [dates] - Emily Schroeder, MacDoc","reportDate":"' + today + '",' +
-        '"metrics":{"totalShowings":0,"feedbackRate":"X of Y (Z%)","positiveSentiment":"X%","avgDom":0,"listingsOver30Days":0,"decisionsNeeded":0},' +
-        '"properties":[{"address":"","city":"","price":"$0","listPrice":0,"listedDate":"Month D YYYY",' +
-        '"daysOnMarket":0,"cdom":0,"showingsThisWeek":0,"totalShowings":0,"feedbackReceived":"0/0",' +
-        '"sentiment":"","sentimentColor":"gray","priceFeedback":"","status":"caution","badgeText":"","badgeColor":"gray",' +
-        '"keyNotes":"","recommendedAction":"","actionColor":"gray","requiresDecision":false}],' +
-        '"decisions":[{"property":"","action":"","tag":"Approve","tagColor":"approve"}]}\n\n' +
+      const systemMsg = 'You are analyzing MLS weekly showing reports for a home builder called Foundation Homes. Today is ' + today + '. Return ONLY a single complete valid JSON object. No markdown. No code fences. No explanation. No text before or after the JSON. Keep all string values concise to avoid truncation.';
+
+      const userMsg = 'Showing report data:\n\n' + safeData + '\n\n' +
+        'Return a JSON object with this structure:\n' +
+        '{\n' +
+        '  "weekLabel": "Week of [dates from reports]",\n' +
+        '  "reportTitle": "Weekly Showings Report",\n' +
+        '  "reportSub": "Foundation Homes - [dates] - Emily Schroeder, MacDoc",\n' +
+        '  "reportDate": "' + today + '",\n' +
+        '  "metrics": {\n' +
+        '    "totalShowings": 0,\n' +
+        '    "feedbackRate": "X of Y (Z%)",\n' +
+        '    "positiveSentiment": "X%",\n' +
+        '    "avgDom": 0,\n' +
+        '    "listingsOver30Days": 0,\n' +
+        '    "decisionsNeeded": 0\n' +
+        '  },\n' +
+        '  "properties": [\n' +
+        '    {\n' +
+        '      "address": "street address",\n' +
+        '      "city": "city, state",\n' +
+        '      "price": "$XXX,XXX",\n' +
+        '      "listPrice": 0,\n' +
+        '      "listedDate": "Month D YYYY",\n' +
+        '      "daysOnMarket": 0,\n' +
+        '      "cdom": 0,\n' +
+        '      "showingsThisWeek": 0,\n' +
+        '      "totalShowings": 0,\n' +
+        '      "feedbackReceived": "X/Y",\n' +
+        '      "sentiment": "Liked",\n' +
+        '      "sentimentColor": "green",\n' +
+        '      "priceFeedback": "Just right",\n' +
+        '      "status": "caution",\n' +
+        '      "badgeText": "label",\n' +
+        '      "badgeColor": "gray",\n' +
+        '      "keyNotes": "brief notes",\n' +
+        '      "recommendedAction": "direct action",\n' +
+        '      "actionColor": "gray",\n' +
+        '      "requiresDecision": false\n' +
+        '    }\n' +
+        '  ],\n' +
+        '  "decisions": [\n' +
+        '    {\n' +
+        '      "property": "short address",\n' +
+        '      "action": "owner ask",\n' +
+        '      "tag": "Approve",\n' +
+        '      "tagColor": "approve"\n' +
+        '    }\n' +
+        '  ]\n' +
+        '}\n\n' +
         'Rules:\n' +
-        '- Sort requiresDecision true first by cdom desc, then false by cdom desc\n' +
-        '- urgent: price concerns, or 30+ CDOM with no offers, or recurring negative feedback\n' +
+        '- Sort: requiresDecision true first by cdom desc, then false by cdom desc\n' +
+        '- urgent: price concerns, or 30+ CDOM no offers, or recurring negative feedback\n' +
         '- blocked: site or construction issue\n' +
-        '- positive: active lead or liked/loved sentiment\n' +
+        '- positive: active lead, liked or loved sentiment\n' +
         '- caution: monitoring, mixed, or new listing\n' +
-        '- daysOnMarket: use DOM from report if available, else calculate from listedDate to today (' + today + ')\n' +
-        '- cdom: use CDOM from report if available, else set equal to daysOnMarket. If CDOM is much higher than DOM, note relisting in keyNotes\n' +
-        '- Be direct in recommendedAction, no hedging\n' +
-        '- decisions: only requiresDecision true, ordered by urgency\n' +
+        '- daysOnMarket: DOM from report if shown, else days from listedDate to today (' + today + ')\n' +
+        '- cdom: CDOM from report if shown, else same as daysOnMarket\n' +
+        '- If CDOM is much higher than DOM, note relisting in keyNotes\n' +
+        '- requiresDecision true: urgent or blocked status\n' +
+        '- decisions: only requiresDecision true items\n' +
         '- sentimentColor: green=liked/loved, red=negative, amber=mixed, gray=none\n' +
-        '- badgeColor: red=urgent, amber=watch, green=positive, gray=neutral';
+        '- badgeColor: red=urgent, amber=watch, green=positive, gray=neutral\n' +
+        '- Keep keyNotes and recommendedAction under 20 words each';
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -86,25 +130,32 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
-          max_tokens: 4000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: dataSection + '\n\n' + instructions }]
+          max_tokens: 8000,
+          system: systemMsg,
+          messages: [{ role: 'user', content: userMsg }]
         })
       });
 
       const data = await response.json();
       if (data.error) return res.status(400).json({ error: data.error });
 
-      const raw = data.content.map(b => b.text || '').join('');
-      const clean = raw.replace(/```json|```/g, '').trim();
+      const raw = data.content.map(function(b) { return b.text || ''; }).join('');
+      let clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const start = clean.indexOf('{');
+      const end = clean.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error('No JSON object in response');
+      clean = clean.slice(start, end + 1);
 
       let parsed;
       try {
         parsed = JSON.parse(clean);
-      } catch (parseErr) {
-        const match = clean.match(/\{[\s\S]*\}/);
-        if (match) parsed = JSON.parse(match[0]);
-        else throw new Error('Could not parse JSON: ' + parseErr.message);
+      } catch (e1) {
+        clean = clean.replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ').replace(/\t/g, ' ');
+        try {
+          parsed = JSON.parse(clean);
+        } catch (e2) {
+          throw new Error('Parse failed: ' + e1.message);
+        }
       }
 
       return res.status(200).json(parsed);
