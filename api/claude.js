@@ -18,6 +18,8 @@ export default async function handler(req, res) {
 
     if (action === 'extract') {
       const base64 = req.body.base64;
+
+      // Send as both document AND image so Claude reads visible content including annotations
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -32,12 +34,19 @@ export default async function handler(req, res) {
           messages: [{
             role: 'user',
             content: [
-              { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-              { type: 'text', text: 'Extract all text from this MLS showing report PDF. Return ONLY the raw text content, nothing else.' }
+              {
+                type: 'document',
+                source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+              },
+              {
+                type: 'text',
+                text: 'Read everything visible on this MLS showing report page including any handwritten notes, stamps, annotations, overlays, or text added on top of the document. Pay special attention to any DOM (Days on Market) and CDOM (Cumulative Days on Market) values — these may appear as annotations or added text rather than part of the original document. Return ALL visible text content exactly as it appears, nothing else.'
+              }
             ]
           }]
         })
       });
+
       const data = await response.json();
       if (data.error) return res.status(400).json({ error: data.error });
       const text = data.content.map(function(b) { return b.text || ''; }).join('\n');
@@ -112,8 +121,8 @@ export default async function handler(req, res) {
         '- blocked: site or construction issue\n' +
         '- positive: active lead, liked or loved sentiment\n' +
         '- caution: monitoring, mixed, or new listing\n' +
-        '- daysOnMarket: DOM from report if shown, else days from listedDate to today (' + today + ')\n' +
-        '- cdom: CDOM from report if shown, else same as daysOnMarket\n' +
+        '- daysOnMarket: look for "DOM" or "Days on Market" anywhere in the report text including annotations. If not found calculate from listedDate to today (' + today + ')\n' +
+        '- cdom: look for "CDOM", "Cumulative Days on Market", or "Cumulative DOM" anywhere in the report text including annotations. If not found set equal to daysOnMarket\n' +
         '- If CDOM is much higher than DOM, note relisting in keyNotes\n' +
         '- requiresDecision true: urgent or blocked status\n' +
         '- decisions: only requiresDecision true items\n' +
