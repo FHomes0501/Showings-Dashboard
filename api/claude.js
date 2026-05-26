@@ -1,3 +1,11 @@
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -44,7 +52,23 @@ export default async function handler(req, res) {
 
     } else if (req.body.action === 'analyze') {
       const texts = req.body.texts;
-      const dataSection = texts.map(t => '=== ' + t.name + ' ===\n' + t.text).join('\n\n');
+
+      // Build the data section safely
+      const dataSection = texts.map(t => {
+        const safeName = t.name.replace(/[^\w\s\-\.\/]/g, '');
+        const safeText = t.text
+          .replace(/\\/g, ' ')
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ')
+          .trim();
+        return '=== ' + safeName + ' ===\n' + safeText;
+      }).join('\n\n');
+
+      const systemPrompt = 'You are analyzing MLS weekly showing reports for a home builder called Foundation Homes. Today is ' + today + '. Return ONLY a valid JSON object. No markdown. No code blocks. No text before or after the JSON. The JSON must be complete and valid.';
+
+      const userMessage = 'Here is the showing report data:\n\n' + dataSection + '\n\n' +
+        'Return a JSON object with this exact structure:\n' +
+        '{"weekLabel":"Week of [dates]","reportTitle":"Weekly Showings Report","reportSub":"Foundation Homes - [dates] - Emily Schroeder, MacDoc","reportDate":"' + today + '","metrics":{"totalShowings":0,"feedbackRate":"X of Y (Z%)","positiveSentiment":"X%","avgDom":0,"listingsOver30Days":0,"decisionsNeeded":0},"properties":[{"address":"","city":"","price":"$0","listPrice":0,"listedDate":"Month D YYYY","daysOnMarket":0,"showingsThisWeek":0,"totalShowings":0,"feedbackReceived":"0/0","sentiment":"","sentimentColor":"gray","priceFeedback":"","status":"caution","badgeText":"","badgeColor":"gray","keyNotes":"","recommendedAction":"","actionColor":"gray","requiresDecision":false}],"decisions":[{"property":"","action":"","tag":"Approve","tagColor":"approve"}]}\n\n' +
+        'Rules: sort requiresDecision true first by daysOnMarket desc. urgent=price concerns or 30+ days no offers or negative feedback. blocked=site issue. positive=active lead or liked/loved. caution=monitoring or new. daysOnMarket=days from listedDate to ' + today + '. Be direct, no hedging. sentimentColor: green=liked/loved, red=negative, amber=mixed, gray=none. badgeColor: red=urgent, amber=watch, green=positive, gray=neutral. Only include requiresDecision=true items in decisions array.';
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -56,19 +80,31 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: 4000,
-          system: 'You are analyzing MLS weekly showing reports for a home builder called Foundation Homes. Today is ' + today + '. Return a single valid JSON object with no markdown, no code blocks, and no text before or after the JSON.',
-          messages: [{
-            role: 'user',
-            content: dataSection + '\n\nAnalyze the showing reports above and return a JSON object with this structure:\n{\n  "weekLabel": "Week of [date range]",\n  "reportTitle": "Weekly Showings Report",\n  "reportSub": "Foundation Homes - [date range] - Emily Schroeder, MacDoc",\n  "reportDate": "' + today + '",\n  "metrics": { "totalShowings": 0, "feedbackRate": "X of Y (Z%)", "positiveSentiment": "X%", "avgDom": 0, "listingsOver30Days": 0, "decisionsNeeded": 0 },\n  "properties": [{ "address": "", "city": "", "price": "$XXX,XXX", "listPrice": 0, "listedDate": "Month D YYYY", "daysOnMarket": 0, "showingsThisWeek": 0, "totalShowings": 0, "feedbackReceived": "X/Y", "sentiment": "Liked", "sentimentColor": "green", "priceFeedback": "Just right", "status": "caution", "badgeText": "", "badgeColor": "gray", "keyNotes": "", "recommendedAction": "", "actionColor": "gray", "requiresDecision": false }],\n  "decisions": [{ "property": "", "action": "", "tag": "Approve", "tagColor": "approve" }]\n}\nRules: sort requiresDecision true first by daysOnMarket desc. urgent=price concerns or 30+ days no offers or negative feedback. blocked=site issue. positive=active lead or liked/loved. caution=monitoring or new listing. daysOnMarket=days from listedDate to today (' + today + '). Be direct in recommendedAction. sentimentColor: green=liked/loved, red=negative, amber=mixed, gray=none. badgeColor: red=urgent, amber=watch, green=positive, gray=neutral.'
-          }]
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userMessage }]
         })
       });
 
       const data = await response.json();
       if (data.error) return res.status(400).json({ error: data.error });
+
       const raw = data.content.map(b => b.text || '').join('');
       const clean = raw.replace(/```json|```/g, '').trim();
-      return res.status(200).json(JSON.parse(clean));
+
+      let parsed;
+      try {
+        parsed = JSON.parse(clean);
+      } catch (parseErr) {
+        // Try to extract just the JSON object if there's extra text
+        const match = clean.match(/\{[\s\S]*\}/);
+        if (match) {
+          parsed = JSON.parse(match[0]);
+        } else {
+          throw new Error('Could not parse response as JSON: ' + parseErr.message);
+        }
+      }
+
+      return res.status(200).json(parsed);
 
     } else {
       return res.status(400).json({ error: { message: 'Unknown action' } });
