@@ -341,8 +341,9 @@ function mc(label, val, warn) {
 }
 
 function propCard(p) {
-  var pct = Math.min(100, Math.round((p.daysOnMarket / 90) * 100));
-  var col = p.daysOnMarket <= 20 ? '#2d7a3a' : p.daysOnMarket <= 35 ? '#b8680a' : '#c0392b';
+  var domForBar = p.cdom || p.daysOnMarket;
+  var pct = Math.min(100, Math.round((domForBar / 90) * 100));
+  var col = domForBar <= 20 ? '#2d7a3a' : domForBar <= 35 ? '#b8680a' : '#c0392b';
   var bc = { red:'badge-red', amber:'badge-amber', green:'badge-green', gray:'badge-gray' }[p.badgeColor] || 'badge-gray';
   var sc = { green:'green', red:'red', amber:'amber' }[p.sentimentColor] || '';
   var dc = p.daysOnMarket > 35 ? 'red' : p.daysOnMarket > 20 ? 'amber' : 'green';
@@ -351,8 +352,8 @@ function propCard(p) {
     '<div class="prop-meta">' + p.city + ' &nbsp;&middot;&nbsp; ' + p.price + '</div>' +
     '<span class="badge ' + bc + '">' + p.badgeText + '</span></div>' +
     '<div class="stats-col">' +
-    '<div class="stat-row"><span class="stat-key">Days on market</span><span class="stat-val ' + dc + '">' + p.daysOnMarket + '</span></div>' +
-    (p.cdom && p.cdom !== p.daysOnMarket ? '<div class="stat-row"><span class="stat-key">CDOM</span><span class="stat-val ' + (p.cdom > 35 ? 'red' : p.cdom > 20 ? 'amber' : 'green') + '">' + p.cdom + '</span></div>' : '') +
+    '<div class="stat-row"><span class="stat-key">Days on market</span><span class="stat-val ' + (p.cdom > 35 ? 'red' : p.cdom > 20 ? 'amber' : 'green') + '">' + (p.cdom || p.daysOnMarket) + '</span></div>' +
+    '<div class="stat-row"><span class="stat-key">Days listed</span><span class="stat-val ' + dc + '">' + p.daysOnMarket + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Showings (wk)</span><span class="stat-val">' + p.showingsThisWeek + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Total showings</span><span class="stat-val">' + p.totalShowings + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Feedback</span><span class="stat-val">' + p.feedbackReceived + '</span></div>' +
