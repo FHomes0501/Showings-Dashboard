@@ -118,7 +118,7 @@ export default async function handler(req, res) {
         'Rules:\n' +
         '- Sort: requiresDecision true first by cdom desc, then false by cdom desc\n' +
         '- urgent: price concerns, or cdom over 30 with no offers, or recurring negative feedback\n' +
-        '- IMPORTANT: the cdom field must always be populated with the second number after the slash in "DOM / CDOM: X / Y". Never leave cdom equal to daysOnMarket if a DOM/CDOM line exists in the report\n' +
+        '- CRITICAL: For each property, search the raw text for the pattern "DOM / CDOM:" followed by two numbers separated by a slash. The first number is daysOnMarket, the second number is cdom. For example if the text says "DOM / CDOM: 7 / 126" then daysOnMarket=7 and cdom=126. You must output cdom=126 not cdom=7. Double-check every property before returning JSON.\n' +
         '- blocked: site or construction issue\n' +
         '- positive: active lead, liked or loved sentiment\n' +
         '- caution: monitoring, mixed, or new listing\n' +
