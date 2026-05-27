@@ -203,7 +203,7 @@ export default async function handler(req, res) {
         });
       }
 
-      return res.status(200).json(parsed);
+      return res.status(200).json({ ...parsed, domCdomMap: domCdomMap });
 
     } else {
       return res.status(400).json({ error: { message: 'Unknown action' } });
