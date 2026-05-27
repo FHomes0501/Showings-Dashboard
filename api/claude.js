@@ -41,7 +41,9 @@ export default async function handler(req, res) {
       const data = await response.json();
       if (data.error) return res.status(400).json({ error: data.error });
       const text = data.content.map(function(b) { return b.text || ''; }).join('\n');
-      return res.status(200).json({ text: text });
+      // Temporary debug — find DOM/CDOM in extracted text
+      const domMatch = text.match(/DOM.{0,5}CDOM.{0,30}/i);
+      return res.status(200).json({ text: text, debugDomLine: domMatch ? domMatch[0] : 'NOT FOUND', debugSample: text.substring(0, 200) });
 
     } else if (action === 'analyze') {
       const texts = req.body.texts;
