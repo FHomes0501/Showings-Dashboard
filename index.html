@@ -244,7 +244,7 @@ async function processZip(file) {
       setStatus('Reading ' + (i+1) + ' of ' + pdfFiles.length + ': ' + pf.name.split('/').pop());
       var base64 = await pf.async('base64');
       var extracted = await extractPdfText(base64, pf.name);
-      pdfTexts.push({ name: pf.name, text: extracted.text, dom: extracted.dom, cdom: extracted.cdom });
+      pdfTexts.push({ name: pf.name, text: extracted });
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
@@ -260,7 +260,7 @@ async function processPdfs(files) {
       setStatus('Reading ' + (i+1) + ' of ' + files.length + ': ' + files[i].name);
       var base64 = await fileToBase64(files[i]);
       var extracted = await extractPdfText(base64, files[i].name);
-      pdfTexts.push({ name: files[i].name, text: extracted.text, dom: extracted.dom, cdom: extracted.cdom });
+      pdfTexts.push({ name: files[i].name, text: extracted });
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
@@ -292,10 +292,18 @@ async function extractPdfText(base64, filename) {
   });
   var d = await res.json();
   if (d.error) throw new Error('Extract error: ' + d.error.message);
-  return d;
+  return d.text;
 }
 
 async function analyzeShowings(pdfTexts) {
+  // Parse DOM/CDOM directly in browser from raw text — most reliable approach
+  var domCdomByIndex = pdfTexts.map(function(p) {
+    var t = p.text || '';
+    var m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/i);
+    if (!m) m = t.match(/DOM\s*\/\s*CDOM\s+(\d+)\s*\/\s*(\d+)/i);
+    return m ? { dom: parseInt(m[1]), cdom: parseInt(m[2]) } : null;
+  });
+
   var res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -303,12 +311,14 @@ async function analyzeShowings(pdfTexts) {
   });
   var d = await res.json();
   if (d.error) throw new Error('Analyze error: ' + d.error.message);
+
+  // Apply DOM/CDOM to each property by index
   if (d.properties) {
     d.properties.forEach(function(prop, idx) {
-      var src = pdfTexts[idx];
-      if (src && src.cdom) {
-        prop.daysOnMarket = src.dom;
-        prop.cdom = src.cdom;
+      var values = domCdomByIndex[idx] || domCdomByIndex[0] || null;
+      if (values) {
+        prop.daysOnMarket = values.dom;
+        prop.cdom = values.cdom;
       }
     });
   }
