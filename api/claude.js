@@ -183,7 +183,7 @@ export default async function handler(req, res) {
           let matched = null;
           Object.keys(domCdomMap).forEach(function(filename) {
             const fn = filename.toLowerCase();
-            const addrWords = addr.split(' ').filter(function(w) { return w.length > 3; });
+            const addrWords = addr.split(/\s+/).filter(function(w) { return w.length > 2; });
             if (addrWords.some(function(w) { return fn.includes(w); })) {
               matched = domCdomMap[filename];
             }
