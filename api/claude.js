@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       const domMatch = text.match(/DOM\s*[\/\\]\s*CDOM\s*[:\s]+(\d+)\s*[\/\\]\s*(\d+)/i);
       const dom = domMatch ? parseInt(domMatch[1]) : null;
       const cdom = domMatch ? parseInt(domMatch[2]) : null;
-      return res.status(200).json({ text: text, dom: dom, cdom: cdom });
+      return res.status(200).json({ text: text, dom: dom, cdom: cdom, debug: 'v2' });
 
     } else if (action === 'analyze') {
       const texts = req.body.texts;
