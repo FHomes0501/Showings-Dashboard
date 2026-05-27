@@ -49,8 +49,10 @@ export default async function handler(req, res) {
       if (data.error) return res.status(400).json({ error: data.error });
       const text = data.content.map(function(b) { return b.text || ''; }).join('\n');
       // Temporary debug — find DOM/CDOM in extracted text
-      const domMatch = text.match(/DOM.{0,5}CDOM.{0,30}/i);
-      return res.status(200).json({ text: text, debugDomLine: domMatch ? domMatch[0] : 'NOT FOUND', debugSample: text.substring(0, 200) });
+      const domMatch = text.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/i);
+      const dom = domMatch ? parseInt(domMatch[1]) : null;
+      const cdom = domMatch ? parseInt(domMatch[2]) : null;
+      return res.status(200).json({ text: text, dom: dom, cdom: cdom });
 
     } else if (action === 'analyze') {
       const texts = req.body.texts;
