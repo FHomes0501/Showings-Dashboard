@@ -303,6 +303,25 @@ async function analyzeShowings(pdfTexts) {
   });
   var d = await res.json();
   if (d.error) throw new Error('Analyze error: ' + d.error.message);
+  if (d.domCdomMap && d.properties) {
+    var allValues = Object.values(d.domCdomMap);
+    d.properties.forEach(function(prop, idx) {
+      var addr = (prop.address || '').toLowerCase();
+      var matched = null;
+      Object.keys(d.domCdomMap).forEach(function(filename) {
+        var fn = filename.toLowerCase();
+        var words = addr.split(/\s+/).filter(function(w) { return w.length > 2; });
+        if (words.some(function(w) { return fn.indexOf(w) !== -1; })) {
+          matched = d.domCdomMap[filename];
+        }
+      });
+      var values = matched || allValues[0] || null;
+      if (values) {
+        prop.daysOnMarket = values.dom;
+        prop.cdom = values.cdom;
+      }
+    });
+  }
   return d;
 }
 
