@@ -195,7 +195,7 @@ export default async function handler(req, res) {
               matched = domCdomMap[filename];
             }
           });
-          const values = matched || allValues[idx] || null;
+          const values = matched || allValues[0] || null;
           if (values) {
             prop.daysOnMarket = values.dom;
             prop.cdom = values.cdom;
