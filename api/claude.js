@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       const data = await response.json();
       if (data.error) return res.status(400).json({ error: data.error });
       const text = data.content.map(function(b) { return b.text || ''; }).join('\n');
+      console.log('EXTRACT TEXT SNIPPET:', text.substring(200, 400));
       const domMatch = text.match(/DOM\s*[\/\\]\s*CDOM\s*[:\s]+(\d+)\s*[\/\\]\s*(\d+)/i);
       const dom = domMatch ? parseInt(domMatch[1]) : null;
       const cdom = domMatch ? parseInt(domMatch[2]) : null;
