@@ -243,8 +243,8 @@ async function processZip(file) {
       var pf = pdfFiles[i];
       setStatus('Reading ' + (i+1) + ' of ' + pdfFiles.length + ': ' + pf.name.split('/').pop());
       var base64 = await pf.async('base64');
-      var text = await extractPdfText(base64, pf.name);
-      pdfTexts.push({ name: pf.name, text: text });
+      var extracted = await extractPdfText(base64, pf.name);
+      pdfTexts.push({ name: pf.name, text: extracted.text, dom: extracted.dom, cdom: extracted.cdom });
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
@@ -259,8 +259,8 @@ async function processPdfs(files) {
     for (var i = 0; i < files.length; i++) {
       setStatus('Reading ' + (i+1) + ' of ' + files.length + ': ' + files[i].name);
       var base64 = await fileToBase64(files[i]);
-      var text = await extractPdfText(base64, files[i].name);
-      pdfTexts.push({ name: files[i].name, text: text });
+      var extracted = await extractPdfText(base64, files[i].name);
+      pdfTexts.push({ name: files[i].name, text: extracted.text, dom: extracted.dom, cdom: extracted.cdom });
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
@@ -292,7 +292,7 @@ async function extractPdfText(base64, filename) {
   });
   var d = await res.json();
   if (d.error) throw new Error('Extract error: ' + d.error.message);
-  return d.text;
+  return d;
 }
 
 async function analyzeShowings(pdfTexts) {
@@ -303,22 +303,12 @@ async function analyzeShowings(pdfTexts) {
   });
   var d = await res.json();
   if (d.error) throw new Error('Analyze error: ' + d.error.message);
-  if (d.domCdomMap && d.properties) {
-    var allValues = Object.values(d.domCdomMap);
+  if (d.properties) {
     d.properties.forEach(function(prop, idx) {
-      var addr = (prop.address || '').toLowerCase();
-      var matched = null;
-      Object.keys(d.domCdomMap).forEach(function(filename) {
-        var fn = filename.toLowerCase();
-        var words = addr.split(/\s+/).filter(function(w) { return w.length > 2; });
-        if (words.some(function(w) { return fn.indexOf(w) !== -1; })) {
-          matched = d.domCdomMap[filename];
-        }
-      });
-      var values = matched || allValues[0] || null;
-      if (values) {
-        prop.daysOnMarket = values.dom;
-        prop.cdom = values.cdom;
+      var src = pdfTexts[idx];
+      if (src && src.cdom) {
+        prop.daysOnMarket = src.dom;
+        prop.cdom = src.cdom;
       }
     });
   }
@@ -371,7 +361,7 @@ function propCard(p) {
     '<div class="prop-meta">' + p.city + ' &nbsp;&middot;&nbsp; ' + p.price + '</div>' +
     '<span class="badge ' + bc + '">' + p.badgeText + '</span></div>' +
     '<div class="stats-col">' +
-'<div class="stat-row"><span class="stat-key">Days on market</span><span class="stat-val ' + (p.cdom > 35 ? 'red' : p.cdom > 20 ? 'amber' : 'green') + '">' + (p.cdom || p.daysOnMarket) + '</span></div>' +
+    '<div class="stat-row"><span class="stat-key">Days on market</span><span class="stat-val ' + (p.cdom > 35 ? 'red' : p.cdom > 20 ? 'amber' : 'green') + '">' + (p.cdom || p.daysOnMarket) + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Days listed</span><span class="stat-val ' + dc + '">' + p.daysOnMarket + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Showings (wk)</span><span class="stat-val">' + p.showingsThisWeek + '</span></div>' +
     '<div class="stat-row"><span class="stat-key">Total showings</span><span class="stat-val">' + p.totalShowings + '</span></div>' +
