@@ -121,7 +121,8 @@ export default async function handler(req, res) {
         '- blocked: site or construction issue\n' +
         '- positive: active lead, liked or loved sentiment\n' +
         '- caution: monitoring, mixed, or new listing\n' +
-        '- daysOnMarket: look for "DOM" or "Days on Market" anywhere in the report text including annotations. If not found calculate from listedDate to today (' + today + ')\n' +
+        '- daysOnMarket: look for "DOM / CDOM: X / Y" format in the report — use the FIRST number (X) as daysOnMarket. If not found calculate from listedDate to today (' + today + ')\n' +
+        '- cdom: look for "DOM / CDOM: X / Y" format in the report — use the SECOND number (Y) as cdom. If not found set equal to daysOnMarket\n' +
         '- cdom: look for "CDOM", "Cumulative Days on Market", or "Cumulative DOM" anywhere in the report text including annotations. If not found set equal to daysOnMarket\n' +
         '- If CDOM is much higher than DOM, note relisting in keyNotes\n' +
         '- requiresDecision true: urgent or blocked status\n' +
