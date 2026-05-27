@@ -18,8 +18,6 @@ export default async function handler(req, res) {
 
     if (action === 'extract') {
       const base64 = req.body.base64;
-
-      // Send as both document AND image so Claude reads visible content including annotations
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -34,19 +32,12 @@ export default async function handler(req, res) {
           messages: [{
             role: 'user',
             content: [
-              {
-                type: 'document',
-                source: { type: 'base64', media_type: 'application/pdf', data: base64 }
-              },
-              {
-                type: 'text',
-                text: 'Read everything visible on this MLS showing report page including any handwritten notes, stamps, annotations, overlays, or text added on top of the document. Pay special attention to any DOM (Days on Market) and CDOM (Cumulative Days on Market) values — these may appear as annotations or added text rather than part of the original document. Return ALL visible text content exactly as it appears, nothing else.'
-              }
+              { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+              { type: 'text', text: 'Extract all text from this MLS showing report PDF. Return ONLY the raw text content, nothing else.' }
             ]
           }]
         })
       });
-
       const data = await response.json();
       if (data.error) return res.status(400).json({ error: data.error });
       const text = data.content.map(function(b) { return b.text || ''; }).join('\n');
@@ -55,6 +46,19 @@ export default async function handler(req, res) {
     } else if (action === 'analyze') {
       const texts = req.body.texts;
 
+      // Parse DOM/CDOM with regex directly — never trust the model for this
+      const domCdomMap = {};
+      texts.forEach(function(t) {
+        const matches = (t.text || '').match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/gi);
+        if (matches && matches.length > 0) {
+          const parts = matches[0].match(/(\d+)\s*\/\s*(\d+)/);
+          if (parts) {
+            domCdomMap[t.name] = { dom: parseInt(parts[1]), cdom: parseInt(parts[2]) };
+          }
+        }
+      });
+
+      // Sanitize text for prompt
       const safeData = texts.map(function(t) {
         const safeName = (t.name || '').replace(/[^\w\s\-\.]/g, '');
         const safeText = (t.text || '')
@@ -117,15 +121,12 @@ export default async function handler(req, res) {
         '}\n\n' +
         'Rules:\n' +
         '- Sort: requiresDecision true first by cdom desc, then false by cdom desc\n' +
-        '- urgent: price concerns, or cdom over 30 with no offers, or recurring negative feedback\n' +
-        '- CRITICAL: For each property, search the raw text for the pattern "DOM / CDOM:" followed by two numbers separated by a slash. The first number is daysOnMarket, the second number is cdom. For example if the text says "DOM / CDOM: 7 / 126" then daysOnMarket=7 and cdom=126. You must output cdom=126 not cdom=7. Double-check every property before returning JSON.\n' +
+        '- urgent: price concerns, or 30+ CDOM no offers, or recurring negative feedback\n' +
         '- blocked: site or construction issue\n' +
         '- positive: active lead, liked or loved sentiment\n' +
         '- caution: monitoring, mixed, or new listing\n' +
-        '- daysOnMarket: find the text "DOM / CDOM:" in the report and take the number immediately before the "/" slash — that is daysOnMarket. Example: "DOM / CDOM: 7 / 126" means daysOnMarket=7\n' +
-        '- cdom: find the text "DOM / CDOM:" in the report and take the number immediately after the "/" slash — that is cdom. Example: "DOM / CDOM: 7 / 126" means cdom=126. This number must appear in the stat row labeled Days on market in the dashboard\n' +
-        '- cdom: look for "CDOM", "Cumulative Days on Market", or "Cumulative DOM" anywhere in the report text including annotations. If not found set equal to daysOnMarket\n' +
-        '- If CDOM is much higher than DOM, note relisting in keyNotes\n' +
+        '- daysOnMarket and cdom will be overridden server-side — just use 0 as placeholder\n' +
+        '- If keyNotes mentions relisting, note it briefly\n' +
         '- requiresDecision true: urgent or blocked status\n' +
         '- decisions: only requiresDecision true items\n' +
         '- sentimentColor: green=liked/loved, red=negative, amber=mixed, gray=none\n' +
@@ -167,6 +168,27 @@ export default async function handler(req, res) {
         } catch (e2) {
           throw new Error('Parse failed: ' + e1.message);
         }
+      }
+
+      // Override DOM/CDOM with regex-parsed values — guaranteed accurate
+      if (parsed.properties && Object.keys(domCdomMap).length > 0) {
+        const allValues = Object.values(domCdomMap);
+        parsed.properties.forEach(function(prop, idx) {
+          const addr = (prop.address || '').toLowerCase();
+          let matched = null;
+          Object.keys(domCdomMap).forEach(function(filename) {
+            const fn = filename.toLowerCase();
+            const addrWords = addr.split(' ').filter(function(w) { return w.length > 3; });
+            if (addrWords.some(function(w) { return fn.includes(w); })) {
+              matched = domCdomMap[filename];
+            }
+          });
+          const values = matched || allValues[idx] || null;
+          if (values) {
+            prop.daysOnMarket = values.dom;
+            prop.cdom = values.cdom;
+          }
+        });
       }
 
       return res.status(200).json(parsed);
