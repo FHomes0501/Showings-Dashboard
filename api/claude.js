@@ -46,16 +46,18 @@ export default async function handler(req, res) {
     } else if (action === 'analyze') {
       const texts = req.body.texts;
 
-      // Parse DOM/CDOM with regex directly — never trust the model for this
+      // Parse DOM/CDOM with regex before any sanitization
       const domCdomMap = {};
       texts.forEach(function(t) {
-        const matches = (t.text || '').match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/gi);
-        if (matches && matches.length > 0) {
-          const parts = matches[0].match(/(\d+)\s*\/\s*(\d+)/);
-          if (parts) {
-            domCdomMap[t.name] = { dom: parseInt(parts[1]), cdom: parseInt(parts[2]) };
-          }
+        const rawText = t.text || '';
+        let match = rawText.match(/DOM\s*[\/\\]\s*CDOM\s*:\s*(\d+)\s*[\/\\]\s*(\d+)/i);
+        if (!match) match = rawText.match(/DOM\s*:\s*(\d+).*?CDOM\s*:\s*(\d+)/i);
+        if (match) {
+          domCdomMap[t.name] = { dom: parseInt(match[1]), cdom: parseInt(match[2]) };
         }
+        console.log('FILE:', t.name);
+        console.log('SAMPLE:', rawText.substring(0, 300));
+        console.log('MATCH:', match ? match[0] : 'NO MATCH');
       });
 
       // Sanitize text for prompt
@@ -125,8 +127,9 @@ export default async function handler(req, res) {
         '- blocked: site or construction issue\n' +
         '- positive: active lead, liked or loved sentiment\n' +
         '- caution: monitoring, mixed, or new listing\n' +
-        '- daysOnMarket and cdom will be overridden server-side — just use 0 as placeholder\n' +
-        '- If keyNotes mentions relisting, note it briefly\n' +
+        '- daysOnMarket: DOM from report if shown, else days from listedDate to today (' + today + ')\n' +
+        '- cdom: CDOM from report if shown, else same as daysOnMarket\n' +
+        '- If CDOM is much higher than DOM, note relisting in keyNotes\n' +
         '- requiresDecision true: urgent or blocked status\n' +
         '- decisions: only requiresDecision true items\n' +
         '- sentimentColor: green=liked/loved, red=negative, amber=mixed, gray=none\n' +
@@ -170,7 +173,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // Override DOM/CDOM with regex-parsed values — guaranteed accurate
+      // Override with regex-parsed DOM/CDOM values
       if (parsed.properties && Object.keys(domCdomMap).length > 0) {
         const allValues = Object.values(domCdomMap);
         parsed.properties.forEach(function(prop, idx) {
