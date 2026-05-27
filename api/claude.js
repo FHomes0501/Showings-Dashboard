@@ -117,12 +117,13 @@ export default async function handler(req, res) {
         '}\n\n' +
         'Rules:\n' +
         '- Sort: requiresDecision true first by cdom desc, then false by cdom desc\n' +
-        '- urgent: price concerns, or 30+ CDOM no offers, or recurring negative feedback\n' +
+        '- urgent: price concerns, or cdom over 30 with no offers, or recurring negative feedback\n' +
+        '- IMPORTANT: the cdom field must always be populated with the second number after the slash in "DOM / CDOM: X / Y". Never leave cdom equal to daysOnMarket if a DOM/CDOM line exists in the report\n' +
         '- blocked: site or construction issue\n' +
         '- positive: active lead, liked or loved sentiment\n' +
         '- caution: monitoring, mixed, or new listing\n' +
-        '- daysOnMarket: look for "DOM / CDOM: X / Y" format in the report — use the FIRST number (X) as daysOnMarket. If not found calculate from listedDate to today (' + today + ')\n' +
-        '- cdom: look for "DOM / CDOM: X / Y" format in the report — use the SECOND number (Y) as cdom. If not found set equal to daysOnMarket\n' +
+        '- daysOnMarket: find the text "DOM / CDOM:" in the report and take the number immediately before the "/" slash — that is daysOnMarket. Example: "DOM / CDOM: 7 / 126" means daysOnMarket=7\n' +
+        '- cdom: find the text "DOM / CDOM:" in the report and take the number immediately after the "/" slash — that is cdom. Example: "DOM / CDOM: 7 / 126" means cdom=126. This number must appear in the stat row labeled Days on market in the dashboard\n' +
         '- cdom: look for "CDOM", "Cumulative Days on Market", or "Cumulative DOM" anywhere in the report text including annotations. If not found set equal to daysOnMarket\n' +
         '- If CDOM is much higher than DOM, note relisting in keyNotes\n' +
         '- requiresDecision true: urgent or blocked status\n' +
