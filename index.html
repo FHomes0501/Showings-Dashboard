@@ -322,20 +322,23 @@ async function analyzeShowings(pdfTexts) {
   if (d.properties && Object.keys(domCdomByIndex).length > 0) {
     d.properties.forEach(function(prop) {
       var propAddr = (prop.address || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+      var propWords = propAddr.split(/\s+/).filter(function(w) { return w.length > 1; });
+      var propNum = propWords.find(function(w) { return /^\d+$/.test(w); });
       var matched = null;
       var bestScore = 0;
       Object.keys(domCdomByIndex).forEach(function(key) {
         var cleanKey = key.replace(/[^a-z0-9\s]/g, '').trim();
-        var propWords = propAddr.split(/\s+/).filter(function(w) { return w.length > 1; });
         var keyWords = cleanKey.split(/\s+/).filter(function(w) { return w.length > 1; });
+        var keyNum = keyWords.find(function(w) { return /^\d+$/.test(w); });
+        // Street number must match if both have one
+        if (propNum && keyNum && propNum !== keyNum) return;
         var matches = propWords.filter(function(w) { return keyWords.indexOf(w) !== -1; });
-        // Score by number of matching words — highest score wins
         if (matches.length > bestScore) {
           bestScore = matches.length;
           matched = domCdomByIndex[key];
         }
       });
-      if (matched && bestScore >= 2) {
+      if (matched && bestScore >= 1) {
         prop.daysOnMarket = matched.dom;
         prop.cdom = matched.cdom;
       }
