@@ -298,7 +298,7 @@ async function extractPdfText(base64, filename) {
 async function analyzeShowings(pdfTexts) {
   // Parse DOM/CDOM directly in browser from raw text — most reliable approach
   var domCdomByIndex = pdfTexts.map(function(p) {
-    var t = p.text || '';
+    var t = (p.text || '').replace(/\r?\n/g, ' ');
     var m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/i);
     if (!m) m = t.match(/DOM\s*\/\s*CDOM\s+(\d+)\s*\/\s*(\d+)/i);
     return m ? { dom: parseInt(m[1]), cdom: parseInt(m[2]) } : null;
