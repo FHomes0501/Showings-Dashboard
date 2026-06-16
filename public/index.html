@@ -94,7 +94,7 @@
     body{background:white;font-size:12px;}
     .container{max-width:100%;padding:.5rem;}
     .prop-card{break-inside:avoid;box-shadow:none!important;}
-    .metrics-grid{grid-template-columns:repeat(6,1fr);}
+    .metrics-grid{grid-template-columns:repeat(7,1fr);}
     #dashboard{display:block!important;}
   }
   @media(max-width:640px){.prop-card{grid-template-columns:1fr;}.container{padding:1rem;}}
@@ -229,6 +229,34 @@ function resetUploadZone() {
   fileInput.value = '';
 }
 
+function sleep(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+async function extractPdfText(base64, filename) {
+  var lastError;
+  for (var attempt = 1; attempt <= 3; attempt++) {
+    try {
+      var res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'extract', base64: base64, filename: filename })
+      });
+      var d = await res.json();
+      if (d.error) {
+        lastError = new Error('Extract error: ' + d.error.message);
+        if (attempt < 3) { await sleep(2000 * attempt); continue; }
+        throw lastError;
+      }
+      return d.text;
+    } catch(err) {
+      lastError = err;
+      if (attempt < 3) { await sleep(2000 * attempt); }
+    }
+  }
+  throw lastError;
+}
+
 async function processZip(file) {
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('empty-state').style.display = 'none';
@@ -245,6 +273,8 @@ async function processZip(file) {
       var base64 = await pf.async('base64');
       var extracted = await extractPdfText(base64, pf.name);
       pdfTexts.push({ name: pf.name, text: extracted });
+      // Small delay between PDFs to avoid overwhelming the API
+      if (i < pdfFiles.length - 1) await sleep(500);
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
@@ -261,50 +291,25 @@ async function processPdfs(files) {
       var base64 = await fileToBase64(files[i]);
       var extracted = await extractPdfText(base64, files[i].name);
       pdfTexts.push({ name: files[i].name, text: extracted });
+      if (i < files.length - 1) await sleep(500);
     }
     await finishProcessing(pdfTexts);
   } catch(err) { console.error(err); showError(err.message); }
 }
 
-function fileToBase64(file) {
-  return new Promise(function(resolve, reject) {
-    var reader = new FileReader();
-    reader.onload = function() { resolve(reader.result.split(',')[1]); };
-    reader.onerror = function() { reject(new Error('Could not read ' + file.name)); };
-    reader.readAsDataURL(file);
-  });
-}
-
-async function finishProcessing(pdfTexts) {
-  setStatus('Analyzing reports and building dashboard...');
-  var data = await analyzeShowings(pdfTexts);
-  renderDashboard(data);
-  hideStatus();
-  resetUploadZone();
-  if (data.weekLabel) document.getElementById('report-week-label').textContent = data.weekLabel;
-}
-
-async function extractPdfText(base64, filename) {
-  var res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'extract', base64: base64, filename: filename })
-  });
-  var d = await res.json();
-  if (d.error) throw new Error('Extract error: ' + d.error.message);
-  return d.text;
-}
-
 async function analyzeShowings(pdfTexts) {
   // Parse DOM/CDOM directly in browser from raw text — most reliable approach
-  var domCdomByIndex = pdfTexts.map(function(p) {
-    // Flatten newlines to spaces first
+  var domCdomByIndex = {};
+  pdfTexts.forEach(function(p) {
     var t = (p.text || '').replace(/\r?\n/g, ' ');
-    // Standard format: DOM / CDOM: 26 / 83
     var m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/i);
-    // Format with text between numbers: DOM / CDOM: 27 [text] / 174
     if (!m) m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)[^\/]{0,50}\/\s*(\d+)/i);
-    return m ? { dom: parseInt(m[1]), cdom: parseInt(m[2]) } : null;
+    if (m) {
+      // Extract address from PDF text to use as key
+      var addrMatch = t.match(/Address:\s*([^\n,]+)/i);
+      var key = addrMatch ? addrMatch[1].trim().toLowerCase() : p.name.toLowerCase();
+      domCdomByIndex[key] = { dom: parseInt(m[1]), cdom: parseInt(m[2]) };
+    }
   });
 
   var res = await fetch(API_URL, {
@@ -316,12 +321,28 @@ async function analyzeShowings(pdfTexts) {
   if (d.error) throw new Error('Analyze error: ' + d.error.message);
 
   // Apply DOM/CDOM to each property by index
-  if (d.properties) {
-    d.properties.forEach(function(prop, idx) {
-      var values = domCdomByIndex[idx] || domCdomByIndex[0] || null;
-      if (values) {
-        prop.daysOnMarket = values.dom;
-        prop.cdom = values.cdom;
+  if (d.properties && Object.keys(domCdomByIndex).length > 0) {
+    d.properties.forEach(function(prop) {
+      var propAddr = (prop.address || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+      var propWords = propAddr.split(/\s+/).filter(function(w) { return w.length > 1; });
+      var propNum = propWords.find(function(w) { return /^\d+$/.test(w); });
+      var matched = null;
+      var bestScore = 0;
+      Object.keys(domCdomByIndex).forEach(function(key) {
+        var cleanKey = key.replace(/[^a-z0-9\s]/g, '').trim();
+        var keyWords = cleanKey.split(/\s+/).filter(function(w) { return w.length > 1; });
+        var keyNum = keyWords.find(function(w) { return /^\d+$/.test(w); });
+        // Street number must match if both have one
+        if (propNum && keyNum && propNum !== keyNum) return;
+        var matches = propWords.filter(function(w) { return keyWords.indexOf(w) !== -1; });
+        if (matches.length > bestScore) {
+          bestScore = matches.length;
+          matched = domCdomByIndex[key];
+        }
+      });
+      if (matched && bestScore >= 1) {
+        prop.daysOnMarket = matched.dom;
+        prop.cdom = matched.cdom;
       }
     });
   }
@@ -334,6 +355,7 @@ function renderDashboard(d) {
   document.getElementById('dash-date').textContent = d.reportDate || '';
   var m = d.metrics;
   document.getElementById('metrics-grid').innerHTML =
+    mc('Total listings', d.properties ? d.properties.length : 0, false) +
     mc('Showings this week', m.totalShowings, false) +
     mc('Feedback rate', m.feedbackRate, false) +
     mc('Positive sentiment', m.positiveSentiment, false) +
