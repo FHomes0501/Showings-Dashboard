@@ -297,6 +297,24 @@ async function processPdfs(files) {
   } catch(err) { console.error(err); showError(err.message); }
 }
 
+function fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() { resolve(reader.result.split(',')[1]); };
+    reader.onerror = function() { reject(new Error('Could not read ' + file.name)); };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function finishProcessing(pdfTexts) {
+  setStatus('Analyzing reports and building dashboard...');
+  var data = await analyzeShowings(pdfTexts);
+  renderDashboard(data);
+  hideStatus();
+  resetUploadZone();
+  if (data.weekLabel) document.getElementById('report-week-label').textContent = data.weekLabel;
+}
+
 async function analyzeShowings(pdfTexts) {
   // Parse DOM/CDOM directly in browser from raw text — most reliable approach
   var domCdomByIndex = {};
