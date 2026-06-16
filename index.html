@@ -297,17 +297,14 @@ async function extractPdfText(base64, filename) {
 
 async function analyzeShowings(pdfTexts) {
   // Parse DOM/CDOM directly in browser from raw text — most reliable approach
-  var domCdomByIndex = {};
-  pdfTexts.forEach(function(p) {
+  var domCdomByIndex = pdfTexts.map(function(p) {
+    // Flatten newlines to spaces first
     var t = (p.text || '').replace(/\r?\n/g, ' ');
+    // Standard format: DOM / CDOM: 26 / 83
     var m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/i);
+    // Format with text between numbers: DOM / CDOM: 27 [text] / 174
     if (!m) m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)[^\/]{0,50}\/\s*(\d+)/i);
-    if (m) {
-      // Extract address from PDF text to use as key
-      var addrMatch = t.match(/Address:\s*([^\n,]+)/i);
-      var key = addrMatch ? addrMatch[1].trim().toLowerCase() : p.name.toLowerCase();
-      domCdomByIndex[key] = { dom: parseInt(m[1]), cdom: parseInt(m[2]) };
-    }
+    return m ? { dom: parseInt(m[1]), cdom: parseInt(m[2]) } : null;
   });
 
   var res = await fetch(API_URL, {
@@ -319,28 +316,12 @@ async function analyzeShowings(pdfTexts) {
   if (d.error) throw new Error('Analyze error: ' + d.error.message);
 
   // Apply DOM/CDOM to each property by index
-  if (d.properties && Object.keys(domCdomByIndex).length > 0) {
-    d.properties.forEach(function(prop) {
-      var propAddr = (prop.address || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-      var propWords = propAddr.split(/\s+/).filter(function(w) { return w.length > 1; });
-      var propNum = propWords.find(function(w) { return /^\d+$/.test(w); });
-      var matched = null;
-      var bestScore = 0;
-      Object.keys(domCdomByIndex).forEach(function(key) {
-        var cleanKey = key.replace(/[^a-z0-9\s]/g, '').trim();
-        var keyWords = cleanKey.split(/\s+/).filter(function(w) { return w.length > 1; });
-        var keyNum = keyWords.find(function(w) { return /^\d+$/.test(w); });
-        // Street number must match if both have one
-        if (propNum && keyNum && propNum !== keyNum) return;
-        var matches = propWords.filter(function(w) { return keyWords.indexOf(w) !== -1; });
-        if (matches.length > bestScore) {
-          bestScore = matches.length;
-          matched = domCdomByIndex[key];
-        }
-      });
-      if (matched && bestScore >= 1) {
-        prop.daysOnMarket = matched.dom;
-        prop.cdom = matched.cdom;
+  if (d.properties) {
+    d.properties.forEach(function(prop, idx) {
+      var values = domCdomByIndex[idx] || domCdomByIndex[0] || null;
+      if (values) {
+        prop.daysOnMarket = values.dom;
+        prop.cdom = values.cdom;
       }
     });
   }
