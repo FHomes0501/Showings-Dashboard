@@ -133,6 +133,8 @@ export default async function handler(req, res) {
         '  ]\n' +
         '}\n\n' +
         'Rules:\n' +
+        '- CRITICAL: metrics.totalShowings must be the SUM of each property\'s showingsThisWeek value only, never sum totalShowings (cumulative). Add up showingsThisWeek across all properties.\n' +
+        '- CRITICAL: metrics.feedbackRate must reflect feedback received from THIS WEEK\'s showings only (showingsThisWeek), not cumulative feedback across the property\'s entire history.\n' +
         '- Sort: requiresDecision true first by cdom desc, then false by cdom desc\n' +
         '- urgent: price concerns, or 30+ CDOM no offers, or recurring negative feedback\n' +
         '- blocked: site or construction issue\n' +
