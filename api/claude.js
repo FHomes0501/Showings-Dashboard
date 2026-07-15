@@ -36,6 +36,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: 1500,
+          temperature: 0,
           messages: [{
             role: 'user',
             content: [
@@ -159,6 +160,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: 'claude-sonnet-4-5',
           max_tokens: 8000,
+          temperature: 0,
           system: systemMsg,
           messages: [{ role: 'user', content: userMsg }]
         })
@@ -205,6 +207,57 @@ export default async function handler(req, res) {
             prop.cdom = values.cdom;
           }
         });
+      }
+
+      // Recompute all aggregate metrics deterministically in code.
+      // The model only extracts per-property facts; math is done here so
+      // the same inputs always produce the same KPIs.
+      if (parsed.properties && parsed.properties.length > 0) {
+        const props = parsed.properties;
+
+        const totalShowings = props.reduce(function(sum, p) {
+          return sum + (parseInt(p.showingsThisWeek, 10) || 0);
+        }, 0);
+
+        let fbReceived = 0;
+        let fbExpected = 0;
+        props.forEach(function(p) {
+          const m = String(p.feedbackReceived || '').match(/(\d+)\s*\/\s*(\d+)/);
+          if (m) {
+            fbReceived += parseInt(m[1], 10);
+            fbExpected += parseInt(m[2], 10);
+          }
+        });
+
+        const withFeedback = props.filter(function(p) {
+          return p.sentiment && !/none|no feedback|n\/a/i.test(p.sentiment);
+        });
+        const positives = withFeedback.filter(function(p) {
+          return /liked|loved|positive/i.test(p.sentiment);
+        });
+
+        const avgDom = Math.round(props.reduce(function(sum, p) {
+          return sum + (parseInt(p.daysOnMarket, 10) || 0);
+        }, 0) / props.length);
+
+        parsed.metrics = parsed.metrics || {};
+        parsed.metrics.totalShowings = totalShowings;
+        if (fbExpected > 0) {
+          parsed.metrics.feedbackRate = fbReceived + ' of ' + fbExpected +
+            ' (' + Math.round((fbReceived / fbExpected) * 100) + '%)';
+        } else {
+          parsed.metrics.feedbackRate = '0 of 0 (0%)';
+        }
+        parsed.metrics.positiveSentiment = withFeedback.length > 0
+          ? Math.round((positives.length / withFeedback.length) * 100) + '%'
+          : '0%';
+        parsed.metrics.avgDom = avgDom;
+        parsed.metrics.listingsOver30Days = props.filter(function(p) {
+          return (parseInt(p.cdom, 10) || 0) >= 30;
+        }).length;
+        parsed.metrics.decisionsNeeded = props.filter(function(p) {
+          return p.requiresDecision === true;
+        }).length;
       }
 
       return res.status(200).json({ ...parsed, domCdomMap: domCdomMap });
