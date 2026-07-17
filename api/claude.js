@@ -258,7 +258,12 @@ export default async function handler(req, res) {
             const fn = filename.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
             const fnNum = (fn.replace(/^[^0-9]*report/i, '').match(/\b(\d+)\b/) || [])[1];
             if (addrNum && fnNum && addrNum !== fnNum) return;
-            const score = addrWords.filter(function(w) { return fn.indexOf(w) !== -1; }).length;
+            const words = addrWords.filter(function(w) { return fn.indexOf(w) !== -1; }).length;
+            if (words === 0) return;
+            // Street number match is a strong signal: filenames abbreviate
+            // ("Ave" vs "AVENUE"), so 1 word + matching number is enough.
+            const numBonus = (addrNum && fnNum && addrNum === fnNum) ? 2 : 0;
+            const score = words + numBonus;
             if (score > bestScore) {
               bestScore = score;
               matched = showingsMap[filename];
