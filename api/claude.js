@@ -255,7 +255,11 @@ export default async function handler(req, res) {
           let matched = null;
           let bestScore = 0;
           Object.keys(showingsMap).forEach(function(filename) {
-            const fn = filename.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+            // Use only the file name — ZIP entries include the folder path
+            // (e.g. "Showing Report - July 7/..."), whose "7" would be
+            // mistaken for the street number.
+            const base = filename.split('/').pop();
+            const fn = base.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
             const fnNum = (fn.replace(/^[^0-9]*report/i, '').match(/\b(\d+)\b/) || [])[1];
             if (addrNum && fnNum && addrNum !== fnNum) return;
             const words = addrWords.filter(function(w) { return fn.indexOf(w) !== -1; }).length;
@@ -307,7 +311,16 @@ export default async function handler(req, res) {
         }, 0) / props.length);
 
         parsed.metrics = parsed.metrics || {};
-        parsed.metrics.totalShowings = totalShowings;
+        // If every uploaded PDF had a parsed weekly comment, the total comes
+        // straight from the PDFs (showingsMap) — no matching involved.
+        const mapFiles = Object.keys(showingsMap);
+        if (mapFiles.length === texts.length) {
+          parsed.metrics.totalShowings = mapFiles.reduce(function(sum, k) {
+            return sum + showingsMap[k];
+          }, 0);
+        } else {
+          parsed.metrics.totalShowings = totalShowings;
+        }
         if (fbExpected > 0) {
           parsed.metrics.feedbackRate = fbReceived + ' of ' + fbExpected +
             ' (' + Math.round((fbReceived / fbExpected) * 100) + '%)';
