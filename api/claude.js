@@ -58,18 +58,52 @@ export default async function handler(req, res) {
     } else if (action === 'analyze') {
       const texts = req.body.texts;
 
-      // Parse DOM/CDOM with regex before any sanitization
+      // Parse the weekly agent comments with regex before any sanitization.
+      // Reports accumulate one comment per week, written as
+      // "2 Showings DOM / CDOM: 6 / 160" or "No showings DOM / CDOM: 20 / 174",
+      // each under an "Ad Comment" entry with a date. We collect ALL of them
+      // and keep only the MOST RECENT one (by the date right before it).
       const domCdomMap = {};
+      const showingsMap = {};
       texts.forEach(function(t) {
         const rawText = t.text || '';
-        let match = rawText.match(/DOM\s*[\/\\]\s*CDOM\s*:\s*(\d+)\s*[\/\\]\s*(\d+)/i);
-        if (!match) match = rawText.match(/DOM\s*:\s*(\d+).*?CDOM\s*:\s*(\d+)/i);
-        if (match) {
-          domCdomMap[t.name] = { dom: parseInt(match[1]), cdom: parseInt(match[2]) };
+        const commentRe = /(No|\d+)\s+showings?\s+DOM\s*\/\s*CDOM\s*:?\s*(\d+)[\s\S]{0,60}?\/\s*(\d+)/gi;
+        let m;
+        let best = null;
+        while ((m = commentRe.exec(rawText)) !== null) {
+          // The comment's date is the nearest MM/DD/YYYY before it in the text
+          const before = rawText.slice(Math.max(0, m.index - 200), m.index);
+          const dates = before.match(/\d{1,2}\/\d{1,2}\/\d{4}/g);
+          const date = dates ? new Date(dates[dates.length - 1]) : null;
+          const entry = {
+            date: date,
+            showings: /no/i.test(m[1]) ? 0 : parseInt(m[1], 10),
+            dom: parseInt(m[2], 10),
+            cdom: parseInt(m[3], 10)
+          };
+          if (!best) best = entry;
+          else if (entry.date && (!best.date || entry.date > best.date)) best = entry;
+        }
+        if (best) {
+          showingsMap[t.name] = best.showings;
+          domCdomMap[t.name] = { dom: best.dom, cdom: best.cdom };
+        } else {
+          // Fallbacks if no full weekly comment was found
+          let match = rawText.match(/DOM\s*[\/\\]\s*CDOM\s*:\s*(\d+)\s*[\/\\]\s*(\d+)/i);
+          if (!match) match = rawText.match(/DOM\s*:\s*(\d+).*?CDOM\s*:\s*(\d+)/i);
+          if (match) {
+            domCdomMap[t.name] = { dom: parseInt(match[1]), cdom: parseInt(match[2]) };
+          }
+          const sMatch = rawText.match(/(\d+)\s+showings\b/i);
+          if (sMatch) {
+            showingsMap[t.name] = parseInt(sMatch[1], 10);
+          } else if (/\bno\s+showings\b/i.test(rawText)) {
+            showingsMap[t.name] = 0;
+          }
         }
         console.log('FILE:', t.name);
-        console.log('SAMPLE:', rawText.substring(0, 300));
-        console.log('MATCH:', match ? match[0] : 'NO MATCH');
+        console.log('LATEST COMMENT:', best ? JSON.stringify(best) : 'NONE (fallback used)');
+        console.log('SHOWINGS:', showingsMap[t.name] !== undefined ? showingsMap[t.name] : 'NO MATCH');
       });
 
       // Sanitize text for prompt
@@ -209,6 +243,33 @@ export default async function handler(req, res) {
         });
       }
 
+      // Override showingsThisWeek with the regex-parsed value from each PDF.
+      // Match property -> file by street number (must match if both have one)
+      // plus best word-overlap score. No fallback: if there's no confident
+      // match, the model's value is kept.
+      if (parsed.properties && Object.keys(showingsMap).length > 0) {
+        parsed.properties.forEach(function(prop) {
+          const addr = (prop.address || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+          const addrWords = addr.split(/\s+/).filter(function(w) { return w.length > 2; });
+          const addrNum = (addr.match(/\b(\d+)\b/) || [])[1];
+          let matched = null;
+          let bestScore = 0;
+          Object.keys(showingsMap).forEach(function(filename) {
+            const fn = filename.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+            const fnNum = (fn.replace(/^[^0-9]*report/i, '').match(/\b(\d+)\b/) || [])[1];
+            if (addrNum && fnNum && addrNum !== fnNum) return;
+            const score = addrWords.filter(function(w) { return fn.indexOf(w) !== -1; }).length;
+            if (score > bestScore) {
+              bestScore = score;
+              matched = showingsMap[filename];
+            }
+          });
+          if (matched !== null && bestScore >= 2) {
+            prop.showingsThisWeek = matched;
+          }
+        });
+      }
+
       // Recompute all aggregate metrics deterministically in code.
       // The model only extracts per-property facts; math is done here so
       // the same inputs always produce the same KPIs.
@@ -260,7 +321,7 @@ export default async function handler(req, res) {
         }).length;
       }
 
-      return res.status(200).json({ ...parsed, domCdomMap: domCdomMap });
+      return res.status(200).json({ ...parsed, domCdomMap: domCdomMap, showingsMap: showingsMap });
 
     } else {
       return res.status(400).json({ error: { message: 'Unknown action' } });
