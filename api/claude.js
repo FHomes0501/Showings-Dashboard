@@ -69,7 +69,8 @@ export default async function handler(req, res) {
         const rawText = t.text || '';
         // Optional date prefix handles pdf-parse output where the comment
         // date is glued to the count: "07/08/20263 showings DOM..."
-        const commentRe = /(\d{1,2}\/\d{1,2}\/\d{4})?\s*(No|\d{1,2})\s+showings?\s+DOM\s*\/\s*CDOM\s*:?\s*(\d+)[\s\S]{0,60}?\/\s*(\d+)/gi;
+        // "D?OM" tolerates the occasional typo "OM / CDOM" in the comments
+        const commentRe = /(\d{1,2}\/\d{1,2}\/\d{4})?\s*(No|\d{1,2})\s+showings?\s+D?OM\s*\/\s*CDOM\s*:?\s*(\d+)[\s\S]{0,60}?\/\s*(\d+)/gi;
         let m;
         let best = null;
         while ((m = commentRe.exec(rawText)) !== null) {
@@ -170,6 +171,7 @@ export default async function handler(req, res) {
         '      "totalShowings": 0,\n' +
         '      "feedbackReceived": "X/Y",\n' +
         '      "sentiment": "Liked",\n' +
+        '      "weekFeedbackSentiments": ["positive"],\n' +
         '      "sentimentColor": "green",\n' +
         '      "priceFeedback": "Just right",\n' +
         '      "status": "caution",\n' +
@@ -191,6 +193,8 @@ export default async function handler(req, res) {
         '  ]\n' +
         '}\n\n' +
         'Rules:\n' +
+        '- weekFeedbackSentiments: one entry per feedback response RECEIVED during the FINAL WEEK of the report snapshot period (check the Received on dates against the Snapshot for dates). Classify each response as "positive", "negative" or "mixed" based on what the showing agent wrote. Empty array [] if no feedback was received in that final week. NEVER include older feedback. Do NOT return counts or percentages, only the array of labels.\n' +
+        '- Note: all numeric metrics are recomputed by the server from the raw reports; focus on accurate per-property fields.\n' +
         '- CRITICAL: metrics.totalShowings must be the SUM of each property\'s showingsThisWeek value only, never sum totalShowings (cumulative). Add up showingsThisWeek across all properties.\n' +
         '- CRITICAL: metrics.feedbackRate must reflect feedback received from THIS WEEK\'s showings only (showingsThisWeek), not cumulative feedback across the property\'s entire history.\n' +
         '- Sort: requiresDecision true first by cdom desc, then false by cdom desc\n' +
@@ -280,6 +284,13 @@ export default async function handler(req, res) {
             if (feedbackMap[matched] !== undefined) {
               prop.feedbackReceived = feedbackMap[matched] + '/' + showingsMap[matched];
               prop.fbThisWeek = feedbackMap[matched];
+              // No feedback this week (per regex) -> sentiment is None,
+              // regardless of what the model says about older feedback
+              if (feedbackMap[matched] === 0) {
+                prop.sentiment = 'None';
+                prop.sentimentColor = 'gray';
+                prop.weekFeedbackSentiments = [];
+              }
             }
             // DOM/CDOM from the same matched file (replaces the old loose
             // matching that fell back to the first file's values)
@@ -311,20 +322,29 @@ export default async function handler(req, res) {
           }
         });
 
-        // Positive sentiment: the DENOMINATOR is deterministic — properties
-        // that received feedback this week according to the regex
-        // (feedbackMap). Only the positive/negative reading of each comment
-        // comes from the model (the numerator's labels).
-        let withFeedback;
-        if (Object.keys(feedbackMap).length === texts.length) {
-          withFeedback = props.filter(function(p) {
-            return (p.fbThisWeek || 0) > 0;
-          });
-        } else {
-          withFeedback = props.filter(function(p) {
-            return p.sentiment && !/none|no feedback|n\/a/i.test(p.sentiment);
+        // Positive sentiment: the model labels each individual feedback of
+        // the final week (weekFeedbackSentiments) and the CODE counts them.
+        // Denominator = total feedbacks this week per the regex. The label
+        // list is trimmed to the regex count so the model cannot inflate it.
+        const fbMapComplete = Object.keys(feedbackMap).length === texts.length;
+        let posCount = 0;
+        let fbDenom = 0;
+        if (fbMapComplete) {
+          fbDenom = Object.keys(feedbackMap).reduce(function(sum, k) {
+            return sum + feedbackMap[k];
+          }, 0);
+          props.forEach(function(p) {
+            let labels = Array.isArray(p.weekFeedbackSentiments) ? p.weekFeedbackSentiments : [];
+            if (typeof p.fbThisWeek === 'number') labels = labels.slice(0, p.fbThisWeek);
+            posCount += labels.filter(function(l) {
+              return /positive/i.test(String(l));
+            }).length;
           });
         }
+        // Fallback (regex incomplete): old property-level estimate
+        const withFeedback = props.filter(function(p) {
+          return p.sentiment && !/none|no feedback|n\/a/i.test(p.sentiment);
+        });
         const positives = withFeedback.filter(function(p) {
           return /liked|loved|positive/i.test(p.sentiment || '');
         });
@@ -379,9 +399,13 @@ export default async function handler(req, res) {
         } else {
           parsed.metrics.feedbackRate = '0 of 0 (0%)';
         }
-        parsed.metrics.positiveSentiment = withFeedback.length > 0
-          ? Math.round((positives.length / withFeedback.length) * 100) + '%'
-          : '0%';
+        parsed.metrics.positiveSentiment = fbMapComplete
+          ? (fbDenom > 0
+              ? posCount + ' of ' + fbDenom + ' (' + Math.round((posCount / fbDenom) * 100) + '%)'
+              : '0 of 0 (0%)')
+          : (withFeedback.length > 0
+              ? Math.round((positives.length / withFeedback.length) * 100) + '%'
+              : '0%');
         parsed.metrics.avgDom = avgDom;
         parsed.metrics.listingsOver30Days = over30;
         // One listing per uploaded PDF — not dependent on the model's output
