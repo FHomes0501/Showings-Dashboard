@@ -65,6 +65,7 @@ export default async function handler(req, res) {
       // and keep only the MOST RECENT one (by the date right before it).
       const domCdomMap = {};
       const showingsMap = {};
+      const feedbackMap = {};
       texts.forEach(function(t) {
         const rawText = t.text || '';
         const commentRe = /(No|\d+)\s+showings?\s+DOM\s*\/\s*CDOM\s*:?\s*(\d+)[\s\S]{0,60}?\/\s*(\d+)/gi;
@@ -101,9 +102,27 @@ export default async function handler(req, res) {
             showingsMap[t.name] = 0;
           }
         }
+        // Feedback received during the report's final week: count
+        // "Received on MM/DD/YYYY" entries dated within the last 7 days
+        // of the snapshot period ("Snapshot for <start> - <end>").
+        const snap = rawText.match(/Snapshot\s+for\s+([A-Za-z]{3,9}\.?\s+\d{1,2},\s+\d{4})\s*-\s*([A-Za-z]{3,9}\.?\s+\d{1,2},\s+\d{4})/i);
+        const weekEnd = snap ? new Date(snap[2]) : null;
+        const weekStart = weekEnd ? new Date(weekEnd.getTime() - 6 * 24 * 3600 * 1000) : null;
+        let fbCount = 0;
+        const fbRe = /Received\s+on\s+(\d{1,2}\/\d{1,2}\/\d{4})/gi;
+        let fm;
+        while ((fm = fbRe.exec(rawText)) !== null) {
+          const fbDate = new Date(fm[1]);
+          if (!weekStart || (fbDate >= weekStart && fbDate <= new Date(weekEnd.getTime() + 24 * 3600 * 1000))) {
+            fbCount++;
+          }
+        }
+        feedbackMap[t.name] = fbCount;
+
         console.log('FILE:', t.name);
         console.log('LATEST COMMENT:', best ? JSON.stringify(best) : 'NONE (fallback used)');
         console.log('SHOWINGS:', showingsMap[t.name] !== undefined ? showingsMap[t.name] : 'NO MATCH');
+        console.log('FEEDBACK THIS WEEK:', fbCount, '| week:', weekStart, '-', weekEnd);
       });
 
       // Sanitize text for prompt
@@ -222,27 +241,6 @@ export default async function handler(req, res) {
         }
       }
 
-      // Override with regex-parsed DOM/CDOM values
-      if (parsed.properties && Object.keys(domCdomMap).length > 0) {
-        const allValues = Object.values(domCdomMap);
-        parsed.properties.forEach(function(prop, idx) {
-          const addr = (prop.address || '').toLowerCase();
-          let matched = null;
-          Object.keys(domCdomMap).forEach(function(filename) {
-            const fn = filename.toLowerCase();
-            const addrWords = addr.split(/\s+/).filter(function(w) { return w.length > 2; });
-            if (addrWords.some(function(w) { return fn.includes(w); })) {
-              matched = domCdomMap[filename];
-            }
-          });
-          const values = matched || allValues[0] || null;
-          if (values) {
-            prop.daysOnMarket = values.dom;
-            prop.cdom = values.cdom;
-          }
-        });
-      }
-
       // Override showingsThisWeek with the regex-parsed value from each PDF.
       // Match property -> file by street number (must match if both have one)
       // plus best word-overlap score. No fallback: if there's no confident
@@ -270,11 +268,21 @@ export default async function handler(req, res) {
             const score = words + numBonus;
             if (score > bestScore) {
               bestScore = score;
-              matched = showingsMap[filename];
+              matched = filename;
             }
           });
           if (matched !== null && bestScore >= 2) {
-            prop.showingsThisWeek = matched;
+            prop.showingsThisWeek = showingsMap[matched];
+            if (feedbackMap[matched] !== undefined) {
+              prop.feedbackReceived = feedbackMap[matched] + '/' + showingsMap[matched];
+              prop.fbThisWeek = feedbackMap[matched];
+            }
+            // DOM/CDOM from the same matched file (replaces the old loose
+            // matching that fell back to the first file's values)
+            if (domCdomMap[matched]) {
+              prop.daysOnMarket = domCdomMap[matched].dom;
+              prop.cdom = domCdomMap[matched].cdom;
+            }
           }
         });
       }
@@ -299,16 +307,46 @@ export default async function handler(req, res) {
           }
         });
 
-        const withFeedback = props.filter(function(p) {
-          return p.sentiment && !/none|no feedback|n\/a/i.test(p.sentiment);
-        });
+        // Positive sentiment: the DENOMINATOR is deterministic — properties
+        // that received feedback this week according to the regex
+        // (feedbackMap). Only the positive/negative reading of each comment
+        // comes from the model (the numerator's labels).
+        let withFeedback;
+        if (Object.keys(feedbackMap).length === texts.length) {
+          withFeedback = props.filter(function(p) {
+            return (p.fbThisWeek || 0) > 0;
+          });
+        } else {
+          withFeedback = props.filter(function(p) {
+            return p.sentiment && !/none|no feedback|n\/a/i.test(p.sentiment);
+          });
+        }
         const positives = withFeedback.filter(function(p) {
-          return /liked|loved|positive/i.test(p.sentiment);
+          return /liked|loved|positive/i.test(p.sentiment || '');
         });
 
-        const avgDom = Math.round(props.reduce(function(sum, p) {
-          return sum + (parseInt(p.daysOnMarket, 10) || 0);
-        }, 0) / props.length);
+        // Avg CDOM and 30+ days: straight from the per-PDF regex values when
+        // every PDF was parsed; fallback to per-property values otherwise.
+        // Uses CDOM (cumulative days on market), the second number in
+        // "No showings DOM / CDOM: 20 / 174" -> 174.
+        const domFiles = Object.keys(domCdomMap);
+        let avgDom;
+        let over30;
+        if (domFiles.length === texts.length) {
+          avgDom = Math.round(domFiles.reduce(function(sum, k) {
+            return sum + domCdomMap[k].cdom;
+          }, 0) / domFiles.length);
+          over30 = domFiles.filter(function(k) {
+            return domCdomMap[k].cdom >= 30;
+          }).length;
+        } else {
+          avgDom = Math.round(props.reduce(function(sum, p) {
+            return sum + (parseInt(p.cdom, 10) || parseInt(p.daysOnMarket, 10) || 0);
+          }, 0) / props.length);
+          over30 = props.filter(function(p) {
+            return (parseInt(p.cdom, 10) || 0) >= 30;
+          }).length;
+        }
 
         parsed.metrics = parsed.metrics || {};
         // If every uploaded PDF had a parsed weekly comment, the total comes
@@ -321,7 +359,17 @@ export default async function handler(req, res) {
         } else {
           parsed.metrics.totalShowings = totalShowings;
         }
-        if (fbExpected > 0) {
+        const fbFiles = Object.keys(feedbackMap);
+        if (mapFiles.length === texts.length && fbFiles.length === texts.length) {
+          // Showings and feedback were regex-parsed from every PDF:
+          // compute the rate straight from the PDFs, no model involved.
+          const fbTotal = fbFiles.reduce(function(sum, k) {
+            return sum + feedbackMap[k];
+          }, 0);
+          const showTotal = parsed.metrics.totalShowings;
+          parsed.metrics.feedbackRate = fbTotal + ' of ' + showTotal +
+            ' (' + (showTotal > 0 ? Math.round((fbTotal / showTotal) * 100) : 0) + '%)';
+        } else if (fbExpected > 0) {
           parsed.metrics.feedbackRate = fbReceived + ' of ' + fbExpected +
             ' (' + Math.round((fbReceived / fbExpected) * 100) + '%)';
         } else {
@@ -331,15 +379,15 @@ export default async function handler(req, res) {
           ? Math.round((positives.length / withFeedback.length) * 100) + '%'
           : '0%';
         parsed.metrics.avgDom = avgDom;
-        parsed.metrics.listingsOver30Days = props.filter(function(p) {
-          return (parseInt(p.cdom, 10) || 0) >= 30;
-        }).length;
+        parsed.metrics.listingsOver30Days = over30;
+        // One listing per uploaded PDF — not dependent on the model's output
+        parsed.metrics.totalListings = texts.length;
         parsed.metrics.decisionsNeeded = props.filter(function(p) {
           return p.requiresDecision === true;
         }).length;
       }
 
-      return res.status(200).json({ ...parsed, domCdomMap: domCdomMap, showingsMap: showingsMap });
+      return res.status(200).json({ ...parsed, domCdomMap: domCdomMap, showingsMap: showingsMap, feedbackMap: feedbackMap });
 
     } else {
       return res.status(400).json({ error: { message: 'Unknown action' } });
