@@ -316,20 +316,9 @@ async function finishProcessing(pdfTexts) {
 }
 
 async function analyzeShowings(pdfTexts) {
-  // Parse DOM/CDOM directly in browser from raw text — most reliable approach
-  var domCdomByIndex = {};
-  pdfTexts.forEach(function(p) {
-    var t = (p.text || '').replace(/\r?\n/g, ' ');
-    var m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)\s*\/\s*(\d+)/i);
-    if (!m) m = t.match(/DOM\s*\/\s*CDOM\s*:\s*(\d+)[^\/]{0,50}\/\s*(\d+)/i);
-    if (m) {
-      // Extract address from PDF text to use as key
-      var addrMatch = t.match(/Address:\s*([^\n,]+)/i);
-      var key = addrMatch ? addrMatch[1].trim().toLowerCase() : p.name.toLowerCase();
-      domCdomByIndex[key] = { dom: parseInt(m[1]), cdom: parseInt(m[2]) };
-    }
-  });
-
+  // All regex parsing (showings, feedback, DOM/CDOM) and KPI math now
+  // happen server-side in api/claude.js, from the most recent weekly
+  // comment in each PDF. The server's values are authoritative.
   var res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -337,33 +326,6 @@ async function analyzeShowings(pdfTexts) {
   });
   var d = await res.json();
   if (d.error) throw new Error('Analyze error: ' + d.error.message);
-
-  // Apply DOM/CDOM to each property by index
-  if (d.properties && Object.keys(domCdomByIndex).length > 0) {
-    d.properties.forEach(function(prop) {
-      var propAddr = (prop.address || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-      var propWords = propAddr.split(/\s+/).filter(function(w) { return w.length > 1; });
-      var propNum = propWords.find(function(w) { return /^\d+$/.test(w); });
-      var matched = null;
-      var bestScore = 0;
-      Object.keys(domCdomByIndex).forEach(function(key) {
-        var cleanKey = key.replace(/[^a-z0-9\s]/g, '').trim();
-        var keyWords = cleanKey.split(/\s+/).filter(function(w) { return w.length > 1; });
-        var keyNum = keyWords.find(function(w) { return /^\d+$/.test(w); });
-        // Street number must match if both have one
-        if (propNum && keyNum && propNum !== keyNum) return;
-        var matches = propWords.filter(function(w) { return keyWords.indexOf(w) !== -1; });
-        if (matches.length > bestScore) {
-          bestScore = matches.length;
-          matched = domCdomByIndex[key];
-        }
-      });
-      if (matched && bestScore >= 1) {
-        prop.daysOnMarket = matched.dom;
-        prop.cdom = matched.cdom;
-      }
-    });
-  }
   return d;
 }
 
@@ -373,7 +335,7 @@ function renderDashboard(d) {
   document.getElementById('dash-date').textContent = d.reportDate || '';
   var m = d.metrics;
   document.getElementById('metrics-grid').innerHTML =
-    mc('Total listings', d.properties ? d.properties.length : 0, false) +
+    mc('Total listings', m.totalListings != null ? m.totalListings : (d.properties ? d.properties.length : 0), false) +
     mc('Showings this week', m.totalShowings, false) +
     mc('Feedback rate', m.feedbackRate, false) +
     mc('Positive sentiment', m.positiveSentiment, false) +
