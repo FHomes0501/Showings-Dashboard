@@ -1,3 +1,5 @@
+import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+
 export const config = {
   api: {
     bodyParser: {
@@ -25,6 +27,28 @@ export default async function handler(req, res) {
 
     if (action === 'extract') {
       const base64 = req.body.base64;
+
+      // Deterministic extraction: read the PDF's text layer directly with
+      // pdf-parse. Same PDF -> exact same text, every single run. No model.
+      let text = '';
+      try {
+        const parsedPdf = await pdfParse(Buffer.from(base64, 'base64'));
+        text = (parsedPdf && parsedPdf.text) ? parsedPdf.text : '';
+      } catch (e) {
+        console.error('pdf-parse failed:', e.message);
+      }
+
+      if (text.trim().length >= 50) {
+        const domMatch2 = text.match(/DOM\s*[\/\\]\s*CDOM\s*[:\s]+(\d+)\s*[\/\\]\s*(\d+)/i);
+        return res.status(200).json({
+          text: text,
+          dom: domMatch2 ? parseInt(domMatch2[1]) : null,
+          cdom: domMatch2 ? parseInt(domMatch2[2]) : null,
+          debug: 'v3-deterministic'
+        });
+      }
+
+      // Fallback for scanned/unreadable PDFs only: Claude transcription
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -68,19 +92,24 @@ export default async function handler(req, res) {
       const feedbackMap = {};
       texts.forEach(function(t) {
         const rawText = t.text || '';
-        const commentRe = /(No|\d+)\s+showings?\s+DOM\s*\/\s*CDOM\s*:?\s*(\d+)[\s\S]{0,60}?\/\s*(\d+)/gi;
+        // Optional date prefix handles pdf-parse output where the comment
+        // date is glued to the count: "07/08/20263 showings DOM..."
+        const commentRe = /(\d{1,2}\/\d{1,2}\/\d{4})?\s*(No|\d{1,2})\s+showings?\s+DOM\s*\/\s*CDOM\s*:?\s*(\d+)[\s\S]{0,60}?\/\s*(\d+)/gi;
         let m;
         let best = null;
         while ((m = commentRe.exec(rawText)) !== null) {
-          // The comment's date is the nearest MM/DD/YYYY before it in the text
-          const before = rawText.slice(Math.max(0, m.index - 200), m.index);
-          const dates = before.match(/\d{1,2}\/\d{1,2}\/\d{4}/g);
-          const date = dates ? new Date(dates[dates.length - 1]) : null;
+          let date = m[1] ? new Date(m[1]) : null;
+          if (!date) {
+            // Otherwise: nearest MM/DD/YYYY before the comment in the text
+            const before = rawText.slice(Math.max(0, m.index - 200), m.index);
+            const dates = before.match(/\d{1,2}\/\d{1,2}\/\d{4}/g);
+            date = dates ? new Date(dates[dates.length - 1]) : null;
+          }
           const entry = {
             date: date,
-            showings: /no/i.test(m[1]) ? 0 : parseInt(m[1], 10),
-            dom: parseInt(m[2], 10),
-            cdom: parseInt(m[3], 10)
+            showings: /no/i.test(m[2]) ? 0 : parseInt(m[2], 10),
+            dom: parseInt(m[3], 10),
+            cdom: parseInt(m[4], 10)
           };
           if (!best) best = entry;
           else if (entry.date && (!best.date || entry.date > best.date)) best = entry;
