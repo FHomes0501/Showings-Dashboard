@@ -1,5 +1,3 @@
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
-
 export const config = {
   api: {
     bodyParser: {
@@ -30,54 +28,31 @@ export default async function handler(req, res) {
 
       // Deterministic extraction: read the PDF's text layer directly with
       // pdf-parse. Same PDF -> exact same text, every single run. No model.
+      const filename = req.body.filename || 'PDF';
+
+      // Deterministic extraction ONLY: read the PDF's text layer directly
+      // with pdf-parse. Same PDF -> exact same text, every run. No model,
+      // no fallback. If a PDF can't be read, we report it instead of
+      // letting a model guess.
       let text = '';
       try {
-        const parsedPdf = await pdfParse(Buffer.from(base64, 'base64'));
+        const mod = await import('pdf-parse/lib/pdf-parse.js');
+        const pdfParse = mod.default || mod;
+        const parsedPdf = await pdfParse(Buffer.from(base64, 'base64'), { version: 'v1.10.100' });
         text = (parsedPdf && parsedPdf.text) ? parsedPdf.text : '';
       } catch (e) {
-        console.error('pdf-parse failed:', e.message);
+        console.error('pdf-parse failed for', filename, ':', e.message);
+        return res.status(400).json({ error: { message: 'Could not read PDF text from "' + filename + '": ' + e.message } });
       }
 
-      if (text.trim().length >= 50) {
-        const domMatch2 = text.match(/DOM\s*[\/\\]\s*CDOM\s*[:\s]+(\d+)\s*[\/\\]\s*(\d+)/i);
-        return res.status(200).json({
-          text: text,
-          dom: domMatch2 ? parseInt(domMatch2[1]) : null,
-          cdom: domMatch2 ? parseInt(domMatch2[2]) : null,
-          debug: 'v3-deterministic'
-        });
+      if (text.trim().length < 50) {
+        return res.status(400).json({ error: { message: 'No text layer found in "' + filename + '" - it may be a scanned image PDF.' } });
       }
 
-      // Fallback for scanned/unreadable PDFs only: Claude transcription
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'pdfs-2024-09-25'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 1500,
-          temperature: 0,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-              { type: 'text', text: 'Extract all text from this MLS showing report PDF. Return ONLY the raw text content, nothing else.' }
-            ]
-          }]
-        })
-      });
-      const data = await response.json();
-      if (data.error) return res.status(400).json({ error: data.error });
-      const text = data.content.map(function(b) { return b.text || ''; }).join('\n');
-      console.log('EXTRACT TEXT SNIPPET:', text.substring(200, 400));
       const domMatch = text.match(/DOM\s*[\/\\]\s*CDOM\s*[:\s]+(\d+)\s*[\/\\]\s*(\d+)/i);
       const dom = domMatch ? parseInt(domMatch[1]) : null;
       const cdom = domMatch ? parseInt(domMatch[2]) : null;
-      return res.status(200).json({ text: text, dom: dom, cdom: cdom, debug: 'v2' });
+      return res.status(200).json({ text: text, dom: dom, cdom: cdom, debug: 'v3-deterministic' });
 
     } else if (action === 'analyze') {
       const texts = req.body.texts;
